@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery | Akirma Events</title>
+  <meta name="description" content="View our portfolio of successful events across Ethiopia. Corporate, weddings, government ceremonies, and more by Akirma Events PLC." />
+  <meta property="og:title" content="Event Gallery | Akirma Events PLC" />
+  <meta property="og:description" content="A visual showcase of our event management expertise in Addis Ababa and beyond." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="images/hero-bg.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .gallery-page-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+    @media (min-width: 640px)  { .gallery-page-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
+    @media (min-width: 1024px) { .gallery-page-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
+
+    .gallery-page-hero {
+      background: linear-gradient(135deg, var(--primary-900) 0%, #1e3a5f 100%);
+      padding: 6rem 0 4rem;
+      text-align: center;
+      color: white;
+    }
+    .gallery-page-hero h1 {
+      margin-bottom: 0.75rem;
+    }
+    .gallery-page-hero p { color: rgba(255,255,255,0.7); font-size: clamp(1rem, 2.5vw, 1.125rem); }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 0.375rem 1rem;
+      border-radius: 9999px;
+      border: 1px solid var(--gray-200);
+      background: white;
+      color: var(--gray-700);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    body.dark .filter-btn { background: var(--gray-800); border-color: var(--gray-700); color: var(--gray-300); }
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--primary-500);
+      border-color: var(--primary-500);
+      color: white;
+    }
+    .gallery-item-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      padding: 1.5rem 0.75rem 0.75rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .gallery-item:hover .gallery-item-label { opacity: 1; }
+    .gallery-item-label p {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+      margin: 0;
+      line-height: 1.3;
+    }
+    .gallery-item-label span {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.7);
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: white; }
+    .back-btn svg { width: 1rem; height: 1rem; }
+    
+    .gallery-page-section { background-color: white; }
+    body.dark .gallery-page-section { background-color: var(--gray-950); }
+  </style>
+</head>
+<body>
+
+<!-- Header (Injected by shared.js) -->
+<header></header>
+
+<!-- Hero -->
+<div class="gallery-page-hero" id="main-content" style="padding-top:8rem;">
+  <div class="container">
+    <a href="index.html" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      <span id="back-label">Back to Home</span>
+    </a>
+    <h1 id="gallery-page-title">Events Gallery</h1>
+    <p id="gallery-page-desc">Our complete portfolio of events across Ethiopia</p>
+  </div>
+</div>
+
+<!-- Gallery -->
+<section class="gallery-page-section" style="padding: 3rem 0 5rem;">
+  <div class="container" id="gallery-container" style="background:inherit;">
+    <div style="background-color: inherit;">
+      <!-- Filter bar -->
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" onclick="filterGallery('All')" id="filter-all">All</button>
+        <button class="filter-btn" onclick="filterGallery('Corporate')" id="filter-corporate">Corporate</button>
+        <button class="filter-btn" onclick="filterGallery('Government')" id="filter-government">Government</button>
+        <button class="filter-btn" onclick="filterGallery('Wedding')" id="filter-wedding">Wedding</button>
+        <button class="filter-btn" onclick="filterGallery('Decoration')" id="filter-decoration">Decoration</button>
+      </div>
+
+      <!-- Grid -->
+      <div class="gallery-page-grid" id="gallery-full-grid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Simple footer -->
+<!-- Footer (Injected by shared.js) -->
+<footer></footer>
+
+<!-- Modal structure (common across all event pages if needed, otherwise specific) -->
+<div class="photo-modal" id="photo-modal" role="dialog" aria-modal="true">
+  <button class="photo-modal-close" id="modal-close" aria-label="Close">${ICONS.X}</button>
+  <button class="photo-modal-prev" id="modal-prev" aria-label="Previous">${ICONS.ChevronLeft}</button>
+  <button class="photo-modal-next" id="modal-next" aria-label="Next">${ICONS.ChevronRight}</button>
+  <div class="photo-modal-inner">
+    <div class="photo-modal-img-wrap"><img id="modal-img" src="" alt="Gallery image" /></div>
+    <div class="photo-modal-caption">
+      <span class="photo-modal-caption-text" id="modal-caption"></span>
+      <span class="photo-modal-counter" id="modal-counter"></span>
+    </div>
+    <div class="photo-modal-thumbs" id="modal-thumbs"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/shared.js"></script>
+<script>
+// Gallery-specific state
+let modalOpen = false;
+let modalIndex = 0;
+let currentFilter = 'All';
+let filteredImages = [];
+
+const ICON_ZOOM = ICONS.MagnifyingGlass;
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderPage();
+  bindPageEvents();
+});
+
+function renderPage() {
+  const tr = t();
+  document.getElementById('gallery-page-title').textContent = tr.nav.gallery;
+  document.getElementById('gallery-page-desc').textContent = tr.events.description;
+  document.getElementById('back-label').textContent = lang === 'am' ? 'ወደ ዋናው ገጽ' : 'Back to Home';
+  
+  // Filters
+  document.getElementById('filter-all').textContent = lang === 'am' ? 'ሁሉም' : 'All';
+  document.getElementById('filter-corporate').textContent = lang === 'am' ? 'ኮርፖሬት' : 'Corporate';
+  document.getElementById('filter-government').textContent = lang === 'am' ? 'መንግስታዊ' : 'Government';
+  document.getElementById('filter-wedding').textContent = lang === 'am' ? 'ሰርግ' : 'Wedding';
+  document.getElementById('filter-decoration').textContent = lang === 'am' ? 'ዲኮር' : 'Decoration';
+  
+  renderGrid();
+}
+
+function filterGallery(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  const map = { All:'filter-all', Corporate:'filter-corporate', Government:'filter-government', Wedding:'filter-wedding', Decoration:'filter-decoration' };
+  document.getElementById(map[cat]).classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  const events = currentFilter === 'All' ? ALL_EVENTS : ALL_EVENTS.filter(e => e.category === currentFilter);
+  filteredImages = events.map(e => e.image);
+  document.getElementById('gallery-full-grid').innerHTML = events.map((e, i) => `
+    <div class="gallery-item" onclick="openModal(${i})" style="aspect-ratio:1;">
+      <img src="${encodeURI(e.image).replace(/#/g, '%23')}" alt="${e.title}" loading="lazy" onerror="this.parentElement.style.display='none'">
+      <div class="gallery-item-overlay">
+        <div class="gallery-zoom-btn">${ICON_ZOOM}</div>
+      </div>
+      <div class="gallery-item-label">
+        <p>${lang === 'am' ? e.titleAm : e.title}</p>
+        <span>${lang === 'am' ? (e.categoryAm || e.category) : e.category}</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('modal-counter').textContent = `1 / ${filteredImages.length}`;
+}
+
+function openModal(i) {
+  modalIndex = i;
+  modalOpen = true;
+  document.getElementById('photo-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderModal();
+  buildThumbs();
+}
+function closeModal() {
+  modalOpen = false;
+  document.getElementById('photo-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function nextModal() {
+  modalIndex = (modalIndex + 1) % filteredImages.length;
+  renderModal(); syncThumb();
+}
+function prevModal() {
+  modalIndex = (modalIndex - 1 + filteredImages.length) % filteredImages.length;
+  renderModal(); syncThumb();
+}
+function renderModal() {
+  const img = document.getElementById('modal-img');
+  img.style.opacity = '0';
+  img.src = encodeURI(filteredImages[modalIndex]).replace(/#/g, '%23');
+  img.onload = () => { img.style.transition = 'opacity 0.2s'; img.style.opacity = '1'; };
+  const ev = ALL_EVENTS.find(e => e.image === filteredImages[modalIndex]);
+  const title = ev ? (lang === 'am' ? ev.titleAm : ev.title) : '';
+  img.alt = title;
+  document.getElementById('modal-caption').textContent = title;
+  document.getElementById('modal-counter').textContent = `${modalIndex + 1} / ${filteredImages.length}`;
+}
+function buildThumbs() {
+  document.getElementById('modal-thumbs').innerHTML = filteredImages.map((img, i) => {
+    const ev = ALL_EVENTS.find(e => e.image === img);
+    const title = ev ? (lang === 'am' ? ev.titleAm : ev.title) : 'Thumbnail';
+    return `
+      <div class="photo-modal-thumb${i === modalIndex ? ' active' : ''}" onclick="goThumb(${i})" role="button" aria-label="Go to image ${i+1}">
+        <img src="${encodeURI(img).replace(/#/g, '%23')}" alt="${title}" loading="lazy">
+      </div>`;
+  }).join('');
+}
+function goThumb(i) { modalIndex = i; renderModal(); syncThumb(); }
+function syncThumb() {
+  document.querySelectorAll('.photo-modal-thumb').forEach((el,i) => el.classList.toggle('active', i === modalIndex));
+  const a = document.querySelector('.photo-modal-thumb.active');
+  if(a) a.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function bindPageEvents() {
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-next').addEventListener('click', nextModal);
+  document.getElementById('modal-prev').addEventListener('click', prevModal);
+  document.getElementById('photo-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('photo-modal')) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (!modalOpen) return;
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'ArrowLeft') prevModal();
+    if (e.key === 'ArrowRight') nextModal();
+  });
+}
+</script>
+</body>
+</html>
