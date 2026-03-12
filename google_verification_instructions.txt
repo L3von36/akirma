@@ -1,0 +1,2 @@
+google-site-verification: google_verification_placeholder.html
+<!-- Instructions: The user will need to provide the actual code from Google Search Console to make this functional. For now, I'll create a generic verification file they can use if they choose HTML tag verification. -->
