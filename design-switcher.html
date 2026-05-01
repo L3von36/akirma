@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akirma Events - Design Variations</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      padding: 2rem;
+    }
+    .switcher {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 3rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+    .intro {
+      color: #666;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .variations {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .var-btn {
+      padding: 1.25rem;
+      border: 2px solid #ddd;
+      background: white;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+    .var-btn:hover {
+      border-color: #333;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .var-btn.active {
+      background: #333;
+      color: white;
+      border-color: #333;
+    }
+    .var-btn-title {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .var-btn-desc {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      font-weight: normal;
+    }
+    .info {
+      background: #f9f9f9;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 4px solid #333;
+      margin-top: 2rem;
+    }
+    .info h3 {
+      margin-bottom: 0.75rem;
+      color: #333;
+    }
+    .info p {
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .steps {
+      background: #e8f5e9;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-top: 2rem;
+      border-left: 4px solid #4caf50;
+    }
+    .steps h3 {
+      margin-bottom: 1rem;
+      color: #2e7d32;
+    }
+    .steps ol {
+      margin-left: 1.5rem;
+      color: #555;
+    }
+    .steps li {
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="switcher">
+    <h1>🎨 Akirma Events - 5 Design Variations</h1>
+
+    <div class="intro">
+      <p>Welcome! We've created <strong>5 completely different design variations</strong> for your event organizer website. Each has its own aesthetic, colors, typography, and feel. Choose the one that best represents your brand!</p>
+    </div>
+
+    <div class="variations">
+      <button class="var-btn active" onclick="switchStyle('v1')">
+        <span class="var-btn-title">✨ V1: Luxury Minimal</span>
+        <span class="var-btn-desc">Elegant, whitespace-focused, premium</span>
+      </button>
+
+      <button class="var-btn" onclick="switchStyle('v2')">
+        <span class="var-btn-title">⚡ V2: Modern Bold</span>
+        <span class="var-btn-desc">High contrast, neon, dynamic</span>
+      </button>
+
+      <button class="var-btn" onclick="switchStyle('v3')">
+        <span class="var-btn-title">📸 V3: Editorial</span>
+        <span class="var-btn-desc">Magazine-style, image-focused</span>
+      </button>
+
+      <button class="var-btn" onclick="switchStyle('v4')">
+        <span class="var-btn-title">💼 V4: Corporate</span>
+        <span class="var-btn-desc">Professional, formal, trustworthy</span>
+      </button>
+
+      <button class="var-btn" onclick="switchStyle('v5')">
+        <span class="var-btn-title">🌙 V5: Dark Modern</span>
+        <span class="var-btn-desc">Sleek, tech-forward, high contrast</span>
+      </button>
+    </div>
+
+    <div class="info">
+      <h3>📋 Current Variation</h3>
+      <p>
+        <strong>Variation 1: Luxury Minimal</strong><br>
+        Dark charcoal (#2c2c2c) with gold accents (#b8860b). Elegant serif (Cormorant Garamond) typography. Clean, minimal design with generous whitespace. Perfect for upscale wedding and event planners.
+      </p>
+    </div>
+
+    <div class="info">
+      <h3>🔄 How to Use</h3>
+      <p>Click any button above to instantly switch between design variations. Go to index.html to see the full website with your chosen design. To make a design permanent, copy the CSS file from css/ folder and use it as your main stylesheet.</p>
+    </div>
+
+    <div class="steps">
+      <h3>✅ Implementation Steps</h3>
+      <ol>
+        <li>Browse all 5 designs using the buttons above</li>
+        <li>Choose your favorite variation</li>
+        <li>Copy the corresponding CSS file name (e.g., styles-v2-modern-bold.css)</li>
+        <li>Update your index.html to link to that CSS file</li>
+        <li>Go live with your new design!</li>
+      </ol>
+    </div>
+
+    <div class="info" style="margin-top: 2rem;">
+      <h3>📁 CSS Files Available</h3>
+      <p style="font-family: monospace; background: white; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+        css/styles-v1-luxury-minimal.css<br>
+        css/styles-v2-modern-bold.css<br>
+        css/styles-v3-editorial.css<br>
+        css/styles-v4-corporate.css<br>
+        css/styles-v5-dark-modern.css
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function switchStyle(variation) {
+      const cssFile = `css/styles-${variation}-${getVariationName(variation)}.css`;
+      const link = document.querySelector('link[rel="stylesheet"]');
+
+      // Update buttons
+      document.querySelectorAll('.var-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.var-btn').classList.add('active');
+
+      console.log(`Switched to: ${variation}`);
+      // Note: actual switching would happen on index.html
+    }
+
+    function getVariationName(v) {
+      const names = {
+        v1: 'luxury-minimal',
+        v2: 'modern-bold',
+        v3: 'editorial',
+        v4: 'corporate',
+        v5: 'dark-modern'
+      };
+      return names[v];
+    }
+  </script>
+</body>
+</html>
