@@ -29,7 +29,9 @@
  *      contact:      { phones: [...], whatsapp, email, location: { en, am } },
  *      seo:          { home: { title, description }, services: {…}, gallery: {…},
  *                      about: {…}, blog: {…},
- *                      verification: { google, bing } }
+ *                      verification: { google, bing } },
+ *      aeo:          { description, slogan, priceRange, areaServed,
+ *                      knowsAbout[], socials: { facebook, instagram, telegram } }
  *    }
  *
  *  SEO notes: one English title/description per page (search engines index
@@ -39,6 +41,13 @@
  *  open (blog.html#slug) its SEO wins over the page-level blog fields.
  *  seo.verification.google/bing inject the GSC/Bing meta tags on every page
  *  (publish the snippet first so crawlers can see it).
+ *
+ *  AEO notes (answer engines: ChatGPT, Perplexity, Claude, Gemini, Copilot…):
+ *  the HTML files carry HARDCODED JSON-LD — that is what non-JS AI crawlers
+ *  (GPTBot, ClaudeBot, PerplexityBot) read. applyAeo() rebuilds those blocks
+ *  from the merged data at runtime so admin edits also reach JavaScript-
+ *  rendering engines (Googlebot, AI Overviews). For full AI coverage, copy
+ *  the generated JSON-LD from the admin AEO tab into the HTML files too.
  *
  *  Blog notes: ids that do not exist in data.js are ADDED as new posts;
  *  an item with _deleted: true is removed from the site. Unknown/new ids
@@ -144,6 +153,26 @@
         description: "Event planning guides, cultural celebration playbooks, and budgeting tips from Akirma Events PLC — Ethiopia's leading event organizer in Addis Ababa.",
       },
       verification: { google: '', bing: '' },
+    },
+    // AEO (Answer Engine Optimization) — business facts used in the
+    // LocalBusiness JSON-LD and the admin "AEO" tab. Keep description/slogan
+    // aligned with the hardcoded schema blocks in the HTML heads.
+    aeo: {
+      description: "Akirma Events PLC is Ethiopia's leading event planning and management company, based on Bole Road in Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, decoration, sound & light, stage & tent rental, catering and more — 500+ events delivered across Ethiopia, up to 20,000 guests.",
+      slogan: "Ethiopia's Premier Event Company",
+      priceRange: '',
+      areaServed: 'Addis Ababa & nationwide across Ethiopia',
+      knowsAbout: [
+        'Wedding Planning', 'Corporate Events', 'Cultural & Religious Events',
+        'Concerts & Festivals', 'Decoration & Setup', 'Advert & Promotion',
+        'Event Organization', 'Stage & Tent Rental', 'Sound & Light Supply',
+        'Chair & Table Supply', 'Catering Supply', 'Kids Game Material Supply',
+      ],
+      socials: {
+        facebook:  'https://www.facebook.com/share/1CFo9pz9T1/',
+        instagram: 'https://www.instagram.com/akirmaevents/',
+        telegram:  'https://t.me/akirmaeventsplc',
+      },
     },
   };
   // Items keep only editor-managed fields (icons etc. stay in data.js)
@@ -349,6 +378,126 @@
     });
   }
 
+  /* ── AEO: schema.org JSON-LD for answer engines ────────────
+   * Rebuilds the (hardcoded) JSON-LD blocks from merged data so admin edits
+   * flow into JavaScript-rendering engines. Blocks patched when present:
+   *   script[data-akirma="business"] — LocalBusiness full node (index.html)
+   *   #ld-faq      — FAQPage  (index.html, from merged FAQS)
+   *   #ld-services — ItemList (services.html, from merged SERVICES)
+   *   #ld-blog     — Blog     (blog.html, from merged BLOG_POSTS)      */
+  var BASE_URL = 'https://akirmaevents.com';
+
+  function cleanList(list) {
+    return (Array.isArray(list) ? list : []).map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+  }
+  function cleanTel(t) { return String(t || '').replace(/[^\d+]/g, ''); }
+
+  /** Effective aeo + contact slice (defaults ← published ← preview). */
+  function aeoEff() {
+    var eff = { aeo: clone(DEFAULTS.aeo), contact: clone(DEFAULTS.contact) };
+    var ov = mergedOverrides() || {};
+    if (isObj(ov.aeo)) deepMerge(eff.aeo, ov.aeo);
+    if (isObj(ov.contact)) deepMerge(eff.contact, ov.contact);
+    return eff;
+  }
+
+  /** Full LocalBusiness node (mirrors the hardcoded block in index.html). */
+  function businessSchema(eff) {
+    eff = eff || aeoEff();
+    var a = eff.aeo || {}, c = eff.contact || {};
+    var tels = cleanList(c.phones).map(cleanTel);
+    var node = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      '@id': BASE_URL + '/#business',
+      name: 'Akirma Events PLC',
+      image: BASE_URL + '/images/hero-bg.png',
+      url: BASE_URL + '/',
+      telephone: tels,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Bole Road',
+        addressLocality: 'Addis Ababa',
+        addressCountry: 'ET',
+      },
+      geo: { '@type': 'GeoCoordinates', latitude: 8.9971, longitude: 38.7967 },
+      openingHoursSpecification: {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        opens: '08:00',
+        closes: '18:00',
+      },
+    };
+    var slogan = String(a.slogan || '').trim();
+    if (slogan) node.slogan = slogan;
+    var desc = String(a.description || '').trim();
+    if (desc) node.description = desc;
+    var area = String(a.areaServed || '').trim();
+    if (area) node.areaServed = area;
+    var ka = cleanList(a.knowsAbout);
+    if (ka.length) node.knowsAbout = ka;
+    if (tels.length) node.contactPoint = { '@type': 'ContactPoint', contactType: 'customer service', telephone: tels, availableLanguage: ['English', 'Amharic'] };
+    var sameAs = cleanList([a.socials && a.socials.facebook, a.socials && a.socials.instagram, a.socials && a.socials.telegram]);
+    if (sameAs.length) node.sameAs = sameAs;
+    var pr = String(a.priceRange || '').trim();
+    if (pr) node.priceRange = pr;
+    return node;
+  }
+
+  /** FAQPage from the merged FAQ list (English — one indexed version). */
+  function faqSchema() {
+    if (typeof FAQS === 'undefined' || !Array.isArray(FAQS)) return null;
+    var items = FAQS.map(function (f) {
+      var q = String(f.q || '').trim(), a = String(f.a || '').trim();
+      return (q && a) ? { '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } } : null;
+    }).filter(Boolean);
+    return items.length ? { '@context': 'https://schema.org', '@type': 'FAQPage', '@id': BASE_URL + '/#faq', mainEntity: items } : null;
+  }
+
+  /** Service catalog for the Services page (feeds "what do they offer" answers). */
+  function servicesSchema() {
+    if (typeof SERVICES === 'undefined' || !Array.isArray(SERVICES)) return null;
+    var items = SERVICES.map(function (s, i) {
+      var name = String(s.name || '').trim();
+      if (!name) return null;
+      var item = { '@type': 'Service', name: name, serviceType: name, provider: { '@type': 'LocalBusiness', '@id': BASE_URL + '/#business', name: 'Akirma Events PLC' }, areaServed: 'Ethiopia', url: BASE_URL + '/services.html' };
+      var d = String(s.desc || '').trim();
+      if (d) item.description = d;
+      return { '@type': 'ListItem', position: i + 1, item: item };
+    }).filter(Boolean);
+    return items.length ? { '@context': 'https://schema.org', '@type': 'ItemList', '@id': BASE_URL + '/services.html#services', name: 'Event services by Akirma Events PLC', itemListElement: items } : null;
+  }
+
+  /** Blog + postings (lets AI engines cite individual guides). */
+  function blogSchema() {
+    if (typeof BLOG_POSTS === 'undefined' || !Array.isArray(BLOG_POSTS)) return null;
+    var posts = BLOG_POSTS.map(function (p) {
+      var slug = String(p.slug || '').trim(), headline = String(p.title || '').trim();
+      if (!slug || !headline) return null;
+      var node = { '@type': 'BlogPosting', headline: headline, url: BASE_URL + '/blog.html#' + encodeURIComponent(slug), author: { '@type': 'Organization', name: 'Akirma Events PLC' } };
+      var d = String(p.date || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) node.datePublished = d;
+      if (p.image) { try { node.image = encodeURI(BASE_URL + '/' + String(p.image)); } catch (e) {} }
+      return node;
+    }).filter(Boolean);
+    return posts.length ? { '@context': 'https://schema.org', '@type': 'Blog', '@id': BASE_URL + '/blog.html#blog', name: 'News & Tips | Akirma Events PLC', url: BASE_URL + '/blog.html', publisher: { '@type': 'LocalBusiness', '@id': BASE_URL + '/#business', name: 'Akirma Events PLC' }, blogPost: posts } : null;
+  }
+
+  /** Replace the body of a JSON-LD script block (if present on this page). */
+  function patchSchema(selector, node) {
+    if (!node) return;
+    var el = document.querySelector(selector);
+    if (!el) return;
+    try { el.textContent = JSON.stringify(node, null, 2); } catch (e) {}
+  }
+
+  function applyAeo(eff) {
+    patchSchema('script[data-akirma="business"]', businessSchema(eff));
+    patchSchema('#ld-faq', faqSchema());
+    patchSchema('#ld-services', servicesSchema());
+    patchSchema('#ld-blog', blogSchema());
+  }
+
   /** blog.html opens/closes posts via history.replaceState → no hashchange
    *  event. Patch replaceState (and listen to hashchange for direct edits)
    *  so per-post SEO always matches the visible article. */
@@ -387,6 +536,7 @@
     if (typeof TESTIMONIALS !== 'undefined')  mergeMapInto(ov.testimonials, TESTIMONIALS);
     if (typeof FAQS !== 'undefined')          mergeMapInto(ov.faqs, FAQS);
     applyBlogSeo(); // after the blog merge above — posts may carry SEO fields
+    applyAeo(aeoEff()); // rebuild the JSON-LD blocks from the merged data
 
     if (isObj(ov.contact)) {
       var c = ov.contact;
@@ -425,6 +575,9 @@
 
   /** Merge an (imported) sparse override object into a working copy. */
   api.deepMergeInto = function (target, src) { return deepMerge(target, src); };
+
+  /** LocalBusiness JSON-LD node (admin AEO tab preview + copy-to-HTML). */
+  api.businessSchema = function (eff) { return businessSchema(eff || aeoEff()); };
 
   /** Merged contact info for rendering (phones/whatsapp/email/location). */
   api.contactInfo = function () {

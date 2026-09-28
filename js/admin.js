@@ -499,7 +499,8 @@ service cloud.firestore {
   const C_TABS = [
     ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services (12)'],
     ['events', 'Events (17)'], ['blog', 'Blog'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
-    ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'], ['seo', 'SEO']
+    ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'], ['seo', 'SEO'],
+    ['aeo', 'AEO']
   ];
 
   function getPath(obj, path) {
@@ -811,7 +812,7 @@ service cloud.firestore {
   const C_TAB_RENDER = {
     hero: tabHero, sections: tabSections, services: tabServices, events: tabEvents, blog: tabBlog,
     testimonials: tabTestimonials, faq: tabFaq, identity: tabIdentity, why: tabWhy, contact: tabContact,
-    seo: tabSeo,
+    seo: tabSeo, aeo: tabAeo,
   };
 
   /* ── SEO tab (per-page meta titles / descriptions) ── */
@@ -833,7 +834,7 @@ service cloud.firestore {
     ['gallery', 'Gallery', 'gallery.html', '0.7', 'monthly'],
     ['blog', 'News & Tips', 'blog.html', '0.7', 'weekly'],
   ];
-  const ROBOTS_DEFAULT = 'User-agent: *\nAllow: /\nDisallow: /admin.html\n\nSitemap: https://akirmaevents.com/sitemap.xml';
+  const ROBOTS_DEFAULT = 'User-agent: *\nAllow: /\nDisallow: /admin.html\n\n# Answer engines & AI assistants — explicitly welcome (AEO)\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: PerplexityBot\nUser-agent: Perplexity-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: Google-Extended\nUser-agent: Applebot-Extended\nUser-agent: CCBot\nUser-agent: Amazonbot\nAllow: /\nDisallow: /admin.html\n\nSitemap: https://akirmaevents.com/sitemap.xml';
 
   function seoTools() {
     if (state.seoTools) return state.seoTools;
@@ -989,6 +990,50 @@ service cloud.firestore {
     });
   }
 
+  /* ── AEO tab (answer-engine optimization) ── */
+  function tabAeo() {
+    const items = [
+      'JSON-LD structured data on all 5 pages — LocalBusiness, FAQPage, Services catalog, Blog, breadcrumbs',
+      'AI crawlers explicitly welcome in robots.txt (GPTBot, OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, CCBot, Applebot-Extended, Amazonbot)',
+      'llms.txt published at the site root — a plain-text brief AI assistants can quote directly',
+      'Bing verified via BingSiteAuth.xml — powers Copilot & ChatGPT search results',
+      'Per-post SEO titles/descriptions (Blog tab) so deep-linked answers match the article',
+    ];
+    return `
+      <h4 class="cgroup-title">AI visibility checklist — already shipped</h4>
+      <p class="content-hint">Answer engines (ChatGPT, Perplexity, Claude, Gemini, Copilot, Google AI Overviews) recommend businesses they can read as <strong>facts</strong>: structured data, clear FAQ answers, and a plain-text brief. All of the groundwork below is already committed to the site.</p>
+      <ul class="content-hint" style="padding-left:1.2rem">${items.map(s => `<li>✓ ${esc(s)}</li>`).join('')}</ul>
+
+      <h4 class="cgroup-title" style="margin-top:2rem">Business facts for AI assistants</h4>
+      <p class="content-hint">These fields feed the LocalBusiness JSON-LD on the Home page. Keep them factual and specific — AI engines reward verifiable statements (numbers, places, processes) and skip inflated marketing claims. English only.</p>
+      <div class="content-grid">
+        ${cField('One-paragraph business description', 'aeo.description', { area: true, rows: 3, count: 320 })}
+        ${cField('Slogan / positioning line', 'aeo.slogan', { count: 80 })}
+        ${cField('Service area', 'aeo.areaServed')}
+        ${cField('Price range hint (optional, e.g. $$)', 'aeo.priceRange')}
+        ${cField('Knows about — one topic per line', 'aeo.knowsAbout', { area: true, rows: 6, features: true })}
+        ${cField('Facebook URL', 'aeo.socials.facebook')}
+        ${cField('Instagram URL', 'aeo.socials.instagram')}
+        ${cField('Telegram URL', 'aeo.socials.telegram')}
+      </div>
+
+      <div class="clabel">Generated LocalBusiness JSON-LD (as injected on the Home page)</div>
+      <pre class="st-pre" id="aeo-ld">${esc(aeoLdText())}</pre>
+      <div class="publish-actions">
+        <button class="mini-btn primary" id="aeo-copy-ld">Copy JSON-LD</button>
+      </div>
+      <p class="content-hint"><strong>Why copy-paste too?</strong> Save &amp; Preview updates the schema for JavaScript-rendering engines (Googlebot, AI Overviews). Non-JS AI crawlers (GPTBot, ClaudeBot, PerplexityBot) only read the hardcoded HTML — for full coverage, paste the copied block over the LocalBusiness <code>&lt;script&gt;</code> in <code>index.html</code> on github.com (pencil icon) and commit. Only needed after big factual changes.</p>`;
+  }
+
+  function aeoLdText() {
+    try { return JSON.stringify(C.businessSchema(state.content), null, 2); }
+    catch (e) { return '// schema build failed: ' + (e && e.message || e); }
+  }
+  function updateAeoPreview() {
+    const pre = $('aeo-ld');
+    if (pre) pre.textContent = aeoLdText();
+  }
+
 
   /* ── CONTENT VIEW (render + actions) ── */
   function renderContent(c) {
@@ -1003,7 +1048,7 @@ service cloud.firestore {
     c.innerHTML = `
       <div class="panel content-intro">
         <div class="content-steps">
-          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page content below — headlines, stats, services, events &amp; photos, blog posts, testimonials, FAQ, contact info — plus each page's SEO title &amp; description (SEO tab).</p></div></div>
+          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page content below — headlines, stats, services, events &amp; photos, blog posts, testimonials, FAQ, contact info — plus each page's SEO title &amp; description (SEO &amp; AEO tabs).</p></div></div>
           <div class="cstep"><span class="step-num">2</span><div><h4>Save &amp; Preview</h4><p>Saves to this browser. Open the website and your changes appear instantly (bilingual — check both EN and AM fields).</p></div></div>
           <div class="cstep"><span class="step-num">3</span><div><h4>Publish</h4><p>Copy the snippet into <code>js/site-overrides.js</code> (editable on github.com) and commit — the change goes live for every visitor.</p></div></div>
         </div>
@@ -1066,6 +1111,7 @@ service cloud.firestore {
           setPath(state.content, p, el.value);
         }
         updateCountFor(p);
+        if (p.lastIndexOf('aeo.', 0) === 0) updateAeoPreview();
         updateContentStatus();
       });
     });
@@ -1076,6 +1122,15 @@ service cloud.firestore {
     });
     SEO_PAGES.forEach(p => updateSeoPreview(p[0]));
     c.querySelectorAll('[data-count-for]').forEach(el => updateCountFor(el.dataset.countFor));
+
+    // AEO tab: copy the generated LocalBusiness JSON-LD (for pasting into index.html)
+    const cpLd = $('aeo-copy-ld');
+    if (cpLd) cpLd.addEventListener('click', () => {
+      const text = aeoLdText();
+      const done = () => { status.textContent = '✓ JSON-LD copied — paste it over the LocalBusiness <script> block in index.html (github.com → pencil icon) and commit for full AI-crawler coverage.'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      else fallbackCopy(text, done);
+    });
 
     // SEO toolbox: sitemap & robots generator (client-side helper state)
     const stChange = el => {

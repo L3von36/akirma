@@ -23,13 +23,15 @@
   <!-- Canonical -->
   <link rel="canonical" href="https://akirmaevents.com/" />
   <!-- Structured Data -->
-  <script type="application/ld+json">
+  <script type="application/ld+json" id="ld-business" data-akirma="business">
   {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
+    "@id": "https://akirmaevents.com/#business",
     "name": "Akirma Events PLC",
+    "slogan": "Ethiopia's Premier Event Company",
+    "description": "Akirma Events PLC is Ethiopia's leading event planning and management company, based on Bole Road in Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, decoration, sound & light, stage & tent rental, catering and more — 500+ events delivered across Ethiopia, up to 20,000 guests.",
     "image": "https://akirmaevents.com/images/hero-bg.png",
-    "@id": "https://akirmaevents.com/",
     "url": "https://akirmaevents.com/",
     "telephone": [ "+251910977371", "+251915843131", "+251915895757" ],
     "address": {
@@ -56,10 +58,66 @@
       "opens": "08:00",
       "closes": "18:00"
     },
+    "areaServed": "Addis Ababa & nationwide across Ethiopia",
+    "knowsAbout": [
+      "Wedding Planning",
+      "Corporate Events",
+      "Cultural & Religious Events",
+      "Concerts & Festivals",
+      "Decoration & Setup",
+      "Advert & Promotion",
+      "Event Organization",
+      "Stage & Tent Rental",
+      "Sound & Light Supply",
+      "Chair & Table Supply",
+      "Catering Supply",
+      "Kids Game Material Supply"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "telephone": [ "+251910977371", "+251915843131", "+251915895757" ],
+      "availableLanguage": [ "English", "Amharic" ]
+    },
     "sameAs": [
       "https://www.facebook.com/share/1CFo9pz9T1/",
       "https://www.instagram.com/akirmaevents/",
       "https://t.me/akirmaeventsplc"
+    ]
+  }
+  </script>
+  <script type="application/ld+json" id="ld-website">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://akirmaevents.com/#website",
+    "url": "https://akirmaevents.com/",
+    "name": "Akirma Events PLC",
+    "inLanguage": [ "en", "am" ],
+    "publisher": { "@type": "LocalBusiness", "@id": "https://akirmaevents.com/#business", "name": "Akirma Events PLC" }
+  }
+  </script>
+  <script type="application/ld+json" id="ld-faq">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": "https://akirmaevents.com/#faq",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How far in advance should I book?",
+        "acceptedAnswer": { "@type": "Answer", "text": "For major weddings and large conferences, we recommend booking at least 15-30 Days in advance. Smaller corporate events can be often arranged within 15-30 Days." }
+      },
+      {
+        "@type": "Question",
+        "name": "Do you handle events outside of Addis Ababa?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes! We coordinate destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is your payment structure?",
+        "acceptedAnswer": { "@type": "Answer", "text": "We typically require a 30% deposit to secure your date, 40% midway through planning, and the final 30% one week before the event." }
+      }
     ]
   }
   </script>
