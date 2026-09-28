@@ -498,7 +498,7 @@ service cloud.firestore {
 
   const C_TABS = [
     ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services (12)'],
-    ['events', 'Events (17)'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
+    ['events', 'Events (17)'], ['blog', 'Blog'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
     ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'],
   ];
 
@@ -542,9 +542,11 @@ service cloud.firestore {
     const val = (opts.features && Array.isArray(v)) ? v.join('\n') : (v == null ? '' : String(v));
     const chip = opts.lang ? `<em class="lang-chip ${opts.lang}">${opts.lang === 'en' ? 'EN' : 'አማ'}</em>` : '';
     const fe = opts.features ? ' data-features="1"' : '';
+    const type = opts.date ? 'date' : (opts.num ? 'number' : 'text');
+    const numAttr = opts.num ? ' min="1" step="1"' : '';
     const fld = opts.area
       ? `<textarea class="form-input cin" data-bind="${path}"${fe} rows="${opts.rows || 3}">${esc(val)}</textarea>`
-      : `<input class="form-input cin" data-bind="${path}"${fe} value="${esc(val)}" />`;
+      : `<input class="form-input cin" type="${type}"${numAttr} data-bind="${path}"${fe} value="${esc(val)}" />`;
     return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}</span>${fld}</label>`;
   }
   /** Bilingual pair. tpl uses {L} → en/am (nested T fields). */
@@ -555,8 +557,51 @@ service cloud.firestore {
   function cBiFlat(label, base, enKey, amKey, opts) {
     return `<div class="cfield-bi">${cField(label, base + '.' + enKey, Object.assign({}, opts, { lang: 'en' }))}${cField(label, base + '.' + amKey, Object.assign({}, opts, { lang: 'am' }))}</div>`;
   }
-  function itemCard(summary, body, open) {
-    return `<details class="item-card"${open ? ' open' : ''}><summary>${summary}</summary><div class="item-body">${body}</div></details>`;
+  function itemCard(summary, body, open, attrs) {
+    return `<details class="item-card"${open ? ' open' : ''}${attrs ? ' ' + attrs : ''}><summary>${summary}</summary><div class="item-body">${body}</div></details>`;
+  }
+
+  /* ── photo field: path input + live thumb + upload → downscaled data URL ── */
+  function cImage(label, path) {
+    const v = getPath(state.content, path) || '';
+    const embedded = v.lastIndexOf('data:', 0) === 0;
+    const note = embedded
+      ? 'Embedded photo (this-browser preview) — publish with a repo path instead'
+      : 'Path inside the repo (images/events/…) or any https:// URL';
+    return `<div class="cimg-edit">
+      <span class="clabel">${esc(label)}</span>
+      <div class="cimg-row">
+        <span class="cimg-thumb"><img src="${esc(v)}" alt="" ${v ? '' : 'style="display:none"'} onerror="this.style.display='none'"></span>
+        <div class="cimg-fields">
+          <input class="form-input cin" data-bind="${path}" value="${esc(v)}" placeholder="images/events/photo.jpg  or  https://…" />
+          <div class="cimg-actions">
+            <label class="mini-btn">Upload photo<input type="file" accept="image/*" data-imgbind="${path}" hidden></label>
+            <span class="cimg-note">${note}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /** File → downscaled JPEG data URL (keeps localStorage overrides small). */
+  function downscaleImage(file, maxW, quality) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxW / img.naturalWidth);
+          const cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          cv.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          URL.revokeObjectURL(url);
+          resolve(cv.toDataURL('image/jpeg', quality || 0.82));
+        } catch (err) { URL.revokeObjectURL(url); reject(err); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image file')); };
+      img.src = url;
+    });
   }
 
   /* ── TABS ── */
@@ -613,16 +658,65 @@ service cloud.firestore {
 
   function tabEvents() {
     const ids = Object.keys(state.content.events).sort((a, b) => Number(a) - Number(b));
-    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Photos are managed in <code>images/events/</code>.</p>
+    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Swap each event's photo below — upload from your computer (instant preview) or paste a path like <code>images/events/my-photo.jpg</code> for publishing.</p>
       <div class="content-cards">${ids.map(id => {
         const e = state.content.events[id];
         return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}`, `
+          ${cImage('Photo', 'events.' + id + '.image')}
           ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
           ${cBiFlat('Category', 'events.' + id, 'category', 'categoryAm')}
           ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
           ${cField('Year', 'events.' + id + '.year')}
         `);
       }).join('')}</div>`;
+  }
+
+  /* ── BLOG tab (edit / add / delete posts on the News & Tips page) ── */
+  function blogIds() {
+    const map = state.content.blog || {};
+    return Object.keys(map)
+      .filter(id => map[id] && typeof map[id] === 'object' && !map[id]._deleted)
+      .sort((a, b) => String(map[b].date || '').localeCompare(String(map[a].date || '')) || (Number(a) - Number(b)));
+  }
+  function blogLiveCount() { return blogIds().length; }
+
+  function tabBlog() {
+    const defaultsBlog = (C.defaults() || {}).blog || {};
+    const ids = blogIds();
+    const del = Object.keys(state.content.blog || {}).filter(id => state.content.blog[id] && state.content.blog[id]._deleted);
+    const cards = ids.map(id => {
+      const p = state.content.blog[id];
+      const isNew = !defaultsBlog[id];
+      return itemCard(
+        `<span class="svc-i">${esc(p.date || '—')}</span> ${esc(p.title)}${isNew ? ' <em class="lang-chip en">new</em>' : ''}`,
+        `
+        ${cBiFlat('Title', 'blog.' + id, 'title', 'titleAm')}
+        ${cBiFlat('Excerpt (shown on the card)', 'blog.' + id, 'excerpt', 'excerptAm', { area: true, rows: 2 })}
+        ${cBiFlat('Category (site filters: Wedding, Corporate, Culture, Tips)', 'blog.' + id, 'category', 'categoryAm')}
+        <div class="post-meta-row">
+          ${cField('Date', 'blog.' + id + '.date', { date: true })}
+          ${cField('Read time (min)', 'blog.' + id + '.read_min', { num: true })}
+          ${cField('URL slug (unique, e.g. my-new-post)', 'blog.' + id + '.slug')}
+        </div>
+        ${cImage('Cover photo', 'blog.' + id + '.image')}
+        ${cField('Content paragraphs (EN) — one paragraph per line', 'blog.' + id + '.content', { area: true, rows: 7, features: true })}
+        ${cField('Content paragraphs (AM) — one paragraph per line', 'blog.' + id + '.contentAm', { area: true, rows: 7, features: true })}
+        <div class="post-actions"><button class="mini-btn danger" data-bdel="${esc(id)}">Delete this post</button></div>
+        `,
+        false,
+        `data-post="${esc(id)}"`
+      );
+    }).join('');
+    const delNote = del.length
+      ? `<p class="content-hint deleted-note">Marked for deletion (applies after Save): ${del.map(id => `<button class="mini-btn" data-bundel="${esc(id)}">Undo &ldquo;${esc(String(state.content.blog[id].title || id).slice(0, 28))}&rdquo;</button>`).join(' ')}</p>`
+      : '';
+    return `
+      <div class="blog-toolbar">
+        <p class="content-hint" style="margin:0">Posts appear on the News &amp; Tips page, newest first. Categories outside the four built-in filters still show under &ldquo;All&rdquo;.</p>
+        <button class="mini-btn primary" id="b-add">+ Add new post</button>
+      </div>
+      <div class="content-cards">${cards || '<p class="content-hint">No posts here — add one above, or press “Reset to defaults” to restore the original four.</p>'}</div>
+      ${delNote}`;
   }
 
   function tabTestimonials() {
@@ -698,7 +792,7 @@ service cloud.firestore {
   }
 
   const C_TAB_RENDER = {
-    hero: tabHero, sections: tabSections, services: tabServices, events: tabEvents,
+    hero: tabHero, sections: tabSections, services: tabServices, events: tabEvents, blog: tabBlog,
     testimonials: tabTestimonials, faq: tabFaq, identity: tabIdentity, why: tabWhy, contact: tabContact,
   };
 
@@ -716,13 +810,14 @@ service cloud.firestore {
     c.innerHTML = `
       <div class="panel content-intro">
         <div class="content-steps">
-          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page text below — headlines, stats, services, events, testimonials, FAQ, contact info.</p></div></div>
+          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page content below — headlines, stats, services, events &amp; photos, blog posts, testimonials, FAQ, contact info.</p></div></div>
           <div class="cstep"><span class="step-num">2</span><div><h4>Save &amp; Preview</h4><p>Saves to this browser. Open the website and your changes appear instantly (bilingual — check both EN and AM fields).</p></div></div>
           <div class="cstep"><span class="step-num">3</span><div><h4>Publish</h4><p>Copy the snippet into <code>js/site-overrides.js</code> (editable on github.com) and commit — the change goes live for every visitor.</p></div></div>
         </div>
         <details class="publish-box">
           <summary>Publish for every visitor / Export &amp; Import</summary>
           <p>After saving, click <strong>Copy publish snippet</strong> and paste it over the empty object in <code>js/site-overrides.js</code>, then commit &amp; push (you can edit that file directly on github.com). Until published, changes are visible in <em>this browser only</em>.</p>
+          <p class="content-hint">Photo tip: uploaded photos are embedded as compressed data URLs for instant preview. For the published site, upload the image file into <code>images/events/</code> (github.com supports drag &amp; drop upload) and paste its path into the photo field instead — the snippet stays small and loads faster.</p>
           <pre id="publish-pre">${esc(snippet)}</pre>
           <div class="publish-actions">
             <button class="mini-btn primary" id="c-copy">${ICONS.download} Copy publish snippet</button>
@@ -737,7 +832,10 @@ service cloud.firestore {
       </div>
 
       <div class="subtabs" id="c-subtabs">
-        ${C_TABS.map(([id, label]) => `<button class="subtab ${state.contentTab === id ? 'active' : ''}" data-tab="${id}">${esc(label)}</button>`).join('')}
+        ${C_TABS.map(([id, label]) => {
+          const lbl = id === 'blog' ? label + ' (' + blogLiveCount() + ')' : label;
+          return `<button class="subtab ${state.contentTab === id ? 'active' : ''}" data-tab="${id}">${esc(lbl)}</button>`;
+        }).join('')}
       </div>
 
       <div class="panel content-panel">
@@ -772,6 +870,66 @@ service cloud.firestore {
       });
     });
 
+    // photo uploads → downscaled embedded data URL (instant preview)
+    c.querySelectorAll('[data-imgbind]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        const path = inp.dataset.imgbind;
+        const wrap = inp.closest('.cimg-edit');
+        downscaleImage(f, 1600, 0.82).then(dataUrl => {
+          setPath(state.content, path, dataUrl);
+          const inp2 = wrap.querySelector('input[data-bind]');
+          if (inp2) inp2.value = dataUrl;
+          const img = wrap.querySelector('.cimg-thumb img');
+          if (img) { img.src = dataUrl; img.style.display = ''; }
+          const note = wrap.querySelector('.cimg-note');
+          if (note) note.textContent = 'Embedded photo (~' + Math.round(dataUrl.length / 1365) + ' KB) — preview only; publish with a repo path';
+          updateContentStatus();
+        }).catch(err => {
+          const note = wrap.querySelector('.cimg-note');
+          if (note) note.textContent = '✕ ' + err.message;
+        });
+      });
+    });
+
+    // blog: add new post
+    const bAdd = $('b-add');
+    if (bAdd) bAdd.addEventListener('click', () => {
+      const map = state.content.blog || (state.content.blog = {});
+      let n = 1;
+      while (map[String(n)]) n++;
+      map[String(n)] = {
+        slug: 'new-post-' + n, date: new Date().toISOString().slice(0, 10), read_min: 4,
+        category: 'Tips', categoryAm: 'ምክር',
+        image: 'images/events/photo_2026-01-29_22-06-34.jpg',
+        title: 'New blog post', titleAm: 'አዲስ ጽሑፍ',
+        excerpt: 'A short summary shown on the blog card.', excerptAm: 'በብሎግ ካርዱ ላይ የሚታይ አጭር ማጠቃለያ።',
+        content: ['Write the first paragraph here. Each new line becomes its own paragraph on the site.'],
+        contentAm: ['የመጀመሪያውን አንቀጽ እዚህ ይጻፉ። እያንዳንዱ አዲስ መስመር በጣቢያው ላይ የራሱ አንቀጽ ይሆናል።'],
+      };
+      state.contentTab = 'blog';
+      render();
+      const el = c.querySelector(`details[data-post="${n}"]`);
+      if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    });
+
+    // blog: delete / undo delete
+    c.querySelectorAll('[data-bdel]').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.bdel;
+      const p = state.content.blog[id];
+      if (!confirm('Delete the post "' + ((p && p.title) || id) + '"? It disappears from the site after Save & Preview ("Reset to defaults" brings it back).')) return;
+      setPath(state.content, 'blog.' + id + '._deleted', true);
+      render();
+    }));
+    c.querySelectorAll('[data-bundel]').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.bundel;
+      const dflt = ((C.defaults() || {}).blog || {})[id];
+      if (!dflt) delete state.content.blog[id];
+      else delete state.content.blog[id]._deleted;
+      render();
+    }));
+
     const status = $('c-status');
     function updateContentStatus() {
       const dirty = contentDirty();
@@ -786,6 +944,8 @@ service cloud.firestore {
       const r = C.save(state.content);
       if (!r.ok) { status.textContent = '✕ Could not save: ' + r.error; status.classList.add('dirty'); return; }
       state.contentSaved = JSON.stringify(r.overrides);
+      const pre = $('publish-pre');
+      if (pre) pre.textContent = 'window.AKIRMA_SITE_OVERRIDES = ' + JSON.stringify(r.overrides, null, 2) + ';';
       updateContentStatus();
       updateContentBadge();
       status.textContent = '✓ Saved — open the website in this browser to see your changes. Use "Copy publish snippet" above to make them live for everyone.';

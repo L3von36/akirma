@@ -20,11 +20,18 @@
  *      stats:        { values: ["500+", ...] },          // hero stat numbers
  *      services:     { "<id>": { name, nameAm, desc, descAm, features } },
  *      events:       { "<id>": { title, titleAm, category, categoryAm,
- *                                location, locationAm, year } },
+ *                                location, locationAm, year, image } },
+ *      blog:         { "<id>": { slug, date, read_min, category, categoryAm,
+ *                                image, title, titleAm, excerpt, excerptAm,
+ *                                content[], contentAm[] , _deleted? } },
  *      testimonials: { "<id>": { quote, quoteAm, author, authorAm, role, roleAm } },
  *      faqs:         { "<id>": { q, qAm, a, aAm } },
  *      contact:      { phones: [...], whatsapp, email, location: { en, am } }
  *    }
+ *
+ *  Blog notes: ids that do not exist in data.js are ADDED as new posts;
+ *  an item with _deleted: true is removed from the site. Unknown/new ids
+ *  need the full field set (see mergeBlogInto for fallbacks).
  *
  *  Public API — window.AkirmaContent:
  *    apply()            merge all layers into the live data (runs on load)
@@ -93,6 +100,7 @@
     },
     services:     toMap(typeof SERVICES !== 'undefined' && SERVICES),
     events:       toMap(typeof ALL_EVENTS !== 'undefined' && ALL_EVENTS),
+    blog:         toMap(typeof BLOG_POSTS !== 'undefined' && BLOG_POSTS),
     testimonials: toMap(typeof TESTIMONIALS !== 'undefined' && TESTIMONIALS),
     faqs:         toMap(typeof FAQS !== 'undefined' && FAQS),
     contact: {
@@ -109,7 +117,17 @@
       if (k === 'services') {
         DEFAULTS[k][id] = { name: item.name || '', nameAm: item.nameAm || '', desc: item.desc || '', descAm: item.descAm || '', features: Array.isArray(item.features) ? item.features : [] };
       } else if (k === 'events') {
-        DEFAULTS[k][id] = { title: item.title || '', titleAm: item.titleAm || '', category: item.category || '', categoryAm: item.categoryAm || '', location: item.location || '', locationAm: item.locationAm || '', year: item.year || '' };
+        DEFAULTS[k][id] = { title: item.title || '', titleAm: item.titleAm || '', category: item.category || '', categoryAm: item.categoryAm || '', location: item.location || '', locationAm: item.locationAm || '', year: item.year || '', image: item.image || '' };
+      } else if (k === 'blog') {
+        DEFAULTS[k][id] = {
+          slug: item.slug || '', date: item.date || '', read_min: item.read_min || 4,
+          category: item.category || '', categoryAm: item.categoryAm || '',
+          image: item.image || '',
+          title: item.title || '', titleAm: item.titleAm || '',
+          excerpt: item.excerpt || '', excerptAm: item.excerptAm || '',
+          content:   Array.isArray(item.content)   ? clone(item.content)   : [],
+          contentAm: Array.isArray(item.contentAm) ? clone(item.contentAm) : [],
+        };
       } else if (k === 'testimonials') {
         DEFAULTS[k][id] = { quote: item.quote || '', quoteAm: item.quoteAm || '', author: item.author || '', authorAm: item.authorAm || '', role: item.role || '', roleAm: item.roleAm || '' };
       } else if (k === 'faqs') {
@@ -151,6 +169,58 @@
     });
   }
 
+  /** Clean an incoming blog override item (dates / numbers / slugs). */
+  function sanitizeBlogOv(o) {
+    if (o.date != null) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(o.date))) delete o.date;
+    }
+    if (o.read_min != null) {
+      var n = Number(o.read_min);
+      if (!n || n < 1) delete o.read_min; else o.read_min = Math.round(n);
+    }
+    if (o.slug != null) {
+      var s = String(o.slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+        .replace(/-+/g, '-').replace(/^-|-$/g, '');
+      if (!s) delete o.slug; else o.slug = s;
+    }
+  }
+
+  /** Blog overrides: edit existing posts, add new ids, remove _deleted ones.
+   *  Unlike mergeMapInto this also APPENDS new posts and sorts by date desc. */
+  function mergeBlogInto(map, list) {
+    if (!isObj(map) || !Array.isArray(list)) return;
+    var nextId = list.reduce(function (m, p) { return Math.max(m, Number(p.id) || 0); }, 0) + 1;
+    Object.keys(map).forEach(function (id) {
+      var o = map[id];
+      if (!isObj(o)) return;
+      sanitizeBlogOv(o);
+      var idx = -1, i;
+      for (i = 0; i < list.length; i++) { if (String(list[i].id) === String(id)) { idx = i; break; } }
+      if (o._deleted) { if (idx >= 0) list.splice(idx, 1); return; }
+      if (idx >= 0) {
+        deepMerge(list[idx], o);
+        if (list[idx].read_min != null) list[idx].read_min = Number(list[idx].read_min) || 4;
+        return;
+      }
+      // brand-new post (needs a minimum of fields to render safely)
+      var nid = Number(id) || nextId++;
+      list.push({
+        id: nid,
+        slug: String(o.slug || ('post-' + nid)),
+        date: String(o.date || new Date().toISOString().slice(0, 10)),
+        read_min: Number(o.read_min) || 4,
+        category: String(o.category || 'Tips'), categoryAm: String(o.categoryAm || 'ምክር'),
+        image: String(o.image || 'images/events/photo_2026-01-29_22-06-34.jpg'),
+        title: String(o.title || 'Untitled post'), titleAm: String(o.titleAm || o.title || 'አርዕስት ሌለው ጽሑፍ'),
+        excerpt: String(o.excerpt || ''), excerptAm: String(o.excerptAm || ''),
+        content:   Array.isArray(o.content)   ? o.content.slice()   : [],
+        contentAm: Array.isArray(o.contentAm) ? o.contentAm.slice() : [],
+      });
+    });
+    // keep the site's "newest first" order
+    list.sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
+  }
+
   function apply() {
     var ov = mergedOverrides();
     if (!ov) return;
@@ -165,6 +235,7 @@
     }
     if (typeof SERVICES !== 'undefined')      mergeMapInto(ov.services, SERVICES);
     if (typeof ALL_EVENTS !== 'undefined')    mergeMapInto(ov.events, ALL_EVENTS);
+    if (typeof BLOG_POSTS !== 'undefined')    mergeBlogInto(ov.blog, BLOG_POSTS);
     if (typeof TESTIMONIALS !== 'undefined')  mergeMapInto(ov.testimonials, TESTIMONIALS);
     if (typeof FAQS !== 'undefined')          mergeMapInto(ov.faqs, FAQS);
 
