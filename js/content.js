@@ -28,12 +28,17 @@
  *      faqs:         { "<id>": { q, qAm, a, aAm } },
  *      contact:      { phones: [...], whatsapp, email, location: { en, am } },
  *      seo:          { home: { title, description }, services: {…}, gallery: {…},
- *                      about: {…}, blog: {…} }
+ *                      about: {…}, blog: {…},
+ *                      verification: { google, bing } }
  *    }
  *
  *  SEO notes: one English title/description per page (search engines index
  *  a single version). applySeo() rewrites <title>, meta[name=description]
  *  and the og:/twitter: equivalents on the matching page at load time.
+ *  Blog posts may carry optional seo_title/seo_description — when a post is
+ *  open (blog.html#slug) its SEO wins over the page-level blog fields.
+ *  seo.verification.google/bing inject the GSC/Bing meta tags on every page
+ *  (publish the snippet first so crawlers can see it).
  *
  *  Blog notes: ids that do not exist in data.js are ADDED as new posts;
  *  an item with _deleted: true is removed from the site. Unknown/new ids
@@ -138,6 +143,7 @@
         title: 'News & Tips | Akirma Events PLC',
         description: "Event planning guides, cultural celebration playbooks, and budgeting tips from Akirma Events PLC — Ethiopia's leading event organizer in Addis Ababa.",
       },
+      verification: { google: '', bing: '' },
     },
   };
   // Items keep only editor-managed fields (icons etc. stay in data.js)
@@ -155,6 +161,7 @@
           image: item.image || '',
           title: item.title || '', titleAm: item.titleAm || '',
           excerpt: item.excerpt || '', excerptAm: item.excerptAm || '',
+          seo_title: item.seo_title || '', seo_description: item.seo_description || '',
           content:   Array.isArray(item.content)   ? clone(item.content)   : [],
           contentAm: Array.isArray(item.contentAm) ? clone(item.contentAm) : [],
         };
@@ -243,6 +250,7 @@
         image: String(o.image || 'images/events/photo_2026-01-29_22-06-34.jpg'),
         title: String(o.title || 'Untitled post'), titleAm: String(o.titleAm || o.title || 'አርዕስት ሌለው ጽሑፍ'),
         excerpt: String(o.excerpt || ''), excerptAm: String(o.excerptAm || ''),
+        seo_title: String(o.seo_title || ''), seo_description: String(o.seo_description || ''),
         content:   Array.isArray(o.content)   ? o.content.slice()   : [],
         contentAm: Array.isArray(o.contentAm) ? o.contentAm.slice() : [],
       });
@@ -259,13 +267,8 @@
     return m ? m[1].toLowerCase() : '';
   }
 
-  /** Rewrite <title>, meta description + og:/twitter: tags for THIS page. */
-  function applySeo(ov) {
-    if (!isObj(ov)) return;
-    var o = ov[pageId()];
-    if (!isObj(o)) return;
-    var title = (typeof o.title === 'string' && o.title.trim()) ? o.title.trim() : null;
-    var desc  = (typeof o.description === 'string' && o.description.trim()) ? o.description.trim() : null;
+  /** Write title/description into the document head (page + post SEO). */
+  function setSeoTags(title, desc) {
     if (title) {
       document.title = title;
       ['meta[property="og:title"]', 'meta[name="twitter:title"]'].forEach(function (sel) {
@@ -281,10 +284,94 @@
     }
   }
 
+  /** Rewrite <title>, meta description + og:/twitter: tags for THIS page. */
+  function applySeo(ov) {
+    if (!isObj(ov)) return;
+    var o = ov[pageId()];
+    if (!isObj(o)) return;
+    setSeoTags(
+      (typeof o.title === 'string' && o.title.trim()) ? o.title.trim() : null,
+      (typeof o.description === 'string' && o.description.trim()) ? o.description.trim() : null
+    );
+  }
+
+  /** Effective page-level SEO (defaults + overrides) for fallback/restore. */
+  function effectiveSeoFor(page) {
+    var base = DEFAULTS.seo[page] || {};
+    var ov = mergedOverrides();
+    var o = (ov && isObj(ov.seo) && isObj(ov.seo[page])) ? ov.seo[page] : {};
+    return {
+      title:       (typeof o.title === 'string' && o.title) || base.title || '',
+      description: (typeof o.description === 'string' && o.description) || base.description || '',
+    };
+  }
+
+  /** Per-post SEO: when blog.html#slug is open, that post's fields win. */
+  function applyBlogSeo() {
+    if (pageId() !== 'blog' || typeof BLOG_POSTS === 'undefined' || !Array.isArray(BLOG_POSTS)) return;
+    var slug = '';
+    try { slug = decodeURIComponent(String(location.hash || '').replace(/^#/, '')).trim(); } catch (e) {}
+    var post = null;
+    if (slug) {
+      for (var i = 0; i < BLOG_POSTS.length; i++) {
+        if (String(BLOG_POSTS[i].slug) === slug) { post = BLOG_POSTS[i]; break; }
+      }
+    }
+    if (post && ((post.seo_title || '').trim() || (post.seo_description || '').trim())) {
+      var page = effectiveSeoFor('blog');
+      setSeoTags(
+        (post.seo_title || '').trim() || page.title || null,
+        (post.seo_description || '').trim() || page.description || null
+      );
+    } else if (!post) {
+      // back on the grid → restore the page-level blog SEO
+      var p2 = effectiveSeoFor('blog');
+      setSeoTags(p2.title || null, p2.description || null);
+    }
+  }
+
+  /** Inject Google Search Console / Bing verification metas (all pages). */
+  function applyVerification(v) {
+    if (!isObj(v)) return;
+    [['google', 'google-site-verification'], ['bing', 'msvalidate.01']].forEach(function (pair) {
+      var val = String(v[pair[0]] || '').trim();
+      if (!val) return;
+      var m = val.match(/content\s*=\s*["']([^"']+)["']/i); // accept a pasted <meta …> tag
+      if (m) val = m[1].trim();
+      if (!val) return;
+      var el = document.querySelector('meta[name="' + pair[1] + '"]');
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', pair[1]);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', val);
+    });
+  }
+
+  /** blog.html opens/closes posts via history.replaceState → no hashchange
+   *  event. Patch replaceState (and listen to hashchange for direct edits)
+   *  so per-post SEO always matches the visible article. */
+  function watchBlogUrl() {
+    if (window.history && typeof history.replaceState === 'function' && !history.__akirmaPatched) {
+      var rs = history.replaceState;
+      history.replaceState = function () {
+        var r = rs.apply(this, arguments);
+        try { if (pageId() === 'blog') applyBlogSeo(); } catch (e) {}
+        return r;
+      };
+      try { history.__akirmaPatched = true; } catch (e) {}
+    }
+    window.addEventListener('hashchange', function () {
+      if (pageId() === 'blog') applyBlogSeo();
+    });
+  }
+
   function apply() {
     var ov = mergedOverrides();
     if (!ov) return;
     applySeo(ov.seo);
+    applyVerification(isObj(ov.seo) ? ov.seo.verification : null);
 
     if (isObj(ov.t)) {
       if (isObj(ov.t.en)) deepMerge(T.en, ov.t.en);
@@ -299,6 +386,7 @@
     if (typeof BLOG_POSTS !== 'undefined')    mergeBlogInto(ov.blog, BLOG_POSTS);
     if (typeof TESTIMONIALS !== 'undefined')  mergeMapInto(ov.testimonials, TESTIMONIALS);
     if (typeof FAQS !== 'undefined')          mergeMapInto(ov.faqs, FAQS);
+    applyBlogSeo(); // after the blog merge above — posts may carry SEO fields
 
     if (isObj(ov.contact)) {
       var c = ov.contact;
@@ -350,5 +438,6 @@
   };
 
   window.AkirmaContent = api;
+  watchBlogUrl();
   apply(); // run immediately — renders happen later on DOMContentLoaded
 })();

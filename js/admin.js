@@ -536,18 +536,32 @@ service cloud.firestore {
   }
 
   /* ── field builders (value comes from state.content at render time) ── */
+  function setCountText(el, n) {
+    const max = Number(el.dataset.countMax) || 160;
+    el.textContent = n + '/' + max;
+    el.classList.toggle('over', n > max);
+    el.classList.toggle('near', n > max - 15 && n <= max);
+  }
+  function updateCountFor(path) {
+    document.querySelectorAll(`[data-count-for="${path}"]`).forEach(el => {
+      const v = getPath(state.content, path);
+      setCountText(el, typeof v === 'string' ? v.length : 0);
+    });
+  }
+
   function cField(label, path, opts) {
     opts = opts || {};
     const v = getPath(state.content, path);
     const val = (opts.features && Array.isArray(v)) ? v.join('\n') : (v == null ? '' : String(v));
     const chip = opts.lang ? `<em class="lang-chip ${opts.lang}">${opts.lang === 'en' ? 'EN' : 'አማ'}</em>` : '';
+    const cnt = opts.count ? `<em class="seo-count" data-count-for="${path}" data-count-max="${opts.count}"></em>` : '';
     const fe = opts.features ? ' data-features="1"' : '';
     const type = opts.date ? 'date' : (opts.num ? 'number' : 'text');
     const numAttr = opts.num ? ' min="1" step="1"' : '';
     const fld = opts.area
       ? `<textarea class="form-input cin" data-bind="${path}"${fe} rows="${opts.rows || 3}">${esc(val)}</textarea>`
       : `<input class="form-input cin" type="${type}"${numAttr} data-bind="${path}"${fe} value="${esc(val)}" />`;
-    return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}</span>${fld}</label>`;
+    return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}${cnt}</span>${fld}</label>`;
   }
   /** Bilingual pair. tpl uses {L} → en/am (nested T fields). */
   function cBi(label, tpl, opts) {
@@ -698,6 +712,9 @@ service cloud.firestore {
           ${cField('Read time (min)', 'blog.' + id + '.read_min', { num: true })}
           ${cField('URL slug (unique, e.g. my-new-post)', 'blog.' + id + '.slug')}
         </div>
+        <h4 class="cgroup-title">Post SEO (optional)</h4>
+        ${cField('Meta title for this post — used when the article is open', 'blog.' + id + '.seo_title', { count: 60 })}
+        ${cField('Meta description for this post — leave empty to reuse the page default', 'blog.' + id + '.seo_description', { area: true, rows: 2, count: 160 })}
         ${cImage('Cover photo', 'blog.' + id + '.image')}
         ${cField('Content paragraphs (EN) — one paragraph per line', 'blog.' + id + '.content', { area: true, rows: 7, features: true })}
         ${cField('Content paragraphs (AM) — one paragraph per line', 'blog.' + id + '.contentAm', { area: true, rows: 7, features: true })}
@@ -806,6 +823,106 @@ service cloud.firestore {
     ['blog', 'News & Tips page', 'akirmaevents.com/blog.html'],
   ];
 
+  /* ── SEO toolbox: sitemap & robots generator (client-side helper state,
+     intentionally NOT part of the publishable content overrides) ── */
+  const TOOLS_KEY = 'akirma_seo_tools';
+  const SITEMAP_PAGES = [
+    ['home', 'Home', '', '1.0', 'monthly'],
+    ['about', 'About', 'about.html', '0.8', 'monthly'],
+    ['services', 'Services', 'services.html', '0.8', 'monthly'],
+    ['gallery', 'Gallery', 'gallery.html', '0.7', 'monthly'],
+    ['blog', 'News & Tips', 'blog.html', '0.7', 'weekly'],
+  ];
+  const ROBOTS_DEFAULT = 'User-agent: *\nAllow: /\nDisallow: /admin.html\n\nSitemap: https://akirmaevents.com/sitemap.xml';
+
+  function seoTools() {
+    if (state.seoTools) return state.seoTools;
+    try {
+      const raw = localStorage.getItem(TOOLS_KEY);
+      const o = raw ? JSON.parse(raw) : null;
+      if (o && typeof o === 'object' && o.pages) { state.seoTools = o; return o; }
+    } catch (e) {}
+    const today = new Date().toISOString().slice(0, 10);
+    const pages = {};
+    SITEMAP_PAGES.forEach(([id]) => { pages[id] = { on: true, lastmod: today }; });
+    state.seoTools = { siteUrl: 'https://akirmaevents.com', pages, robots: ROBOTS_DEFAULT, robotsSite: ROBOTS_DEFAULT, seeded: false };
+    return state.seoTools;
+  }
+  function saveSeoTools() {
+    try { localStorage.setItem(TOOLS_KEY, JSON.stringify(state.seoTools)); } catch (e) {}
+  }
+
+  /** Prefill lastmod dates + robots.txt from the live files (first run only). */
+  function seedSeoToolsFromSite() {
+    const st = seoTools();
+    if (st.seeded || typeof fetch !== 'function') return;
+    st.seeded = true; // set first — prevents fetch-failure render loops
+    Promise.all([
+      fetch('sitemap.xml').then(r => (r.ok ? r.text() : '')),
+      fetch('robots.txt').then(r => (r.ok ? r.text() : '')),
+    ]).then(([sx, rb]) => {
+      try {
+        if (sx) {
+          const doc = new DOMParser().parseFromString(sx, 'application/xml');
+          const base = (st.siteUrl || '').replace(/\/$/, '');
+          doc.querySelectorAll('url').forEach(u => {
+            const loc = ((u.querySelector('loc') || {}).textContent || '').trim();
+            const lm = ((u.querySelector('lastmod') || {}).textContent || '').trim();
+            const hit = SITEMAP_PAGES.find(([id, , file]) => loc === base + '/' + file || (id === 'home' && loc === base + '/'));
+            if (hit && /^\d{4}-\d{2}-\d{2}$/.test(lm)) st.pages[hit[0]].lastmod = lm;
+          });
+        }
+      } catch (e) {}
+      if (rb && rb.trim()) { st.robots = rb.trim(); st.robotsSite = rb.trim(); }
+      saveSeoTools();
+      if (state.view === 'content' && state.contentTab === 'seo') render();
+    }).catch(() => {});
+  }
+
+  function buildSitemapXml(st) {
+    const base = (st.siteUrl || 'https://akirmaevents.com').replace(/\/$/, '');
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = SITEMAP_PAGES.filter(([id]) => st.pages[id] && st.pages[id].on !== false).map(([id, , file, pri, freq]) => {
+      const lm = /^\d{4}-\d{2}-\d{2}$/.test(st.pages[id].lastmod || '') ? st.pages[id].lastmod : today;
+      return `  <url>\n    <loc>${base}/${file}</loc>\n    <lastmod>${lm}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${pri}</priority>\n  </url>`;
+    });
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
+  }
+
+  function seoVerificationCard() {
+    return `
+      <h4 class="cgroup-title">Site verification — Google Search Console &amp; Bing</h4>
+      <p class="content-hint">Paste the verification code, or the whole &lt;meta&gt; tag they give you — the code is extracted automatically. Then Save &amp; Preview and publish the snippet (Googlebot renders JavaScript, so the meta method is normally accepted). The bulletproof alternative is the HTML-file method: download the googlexxxx.html file they offer and upload it into the repo root on github.com.</p>
+      <div class="content-grid">
+        ${cField('Google Search Console verification', 'seo.verification.google')}
+        ${cField('Bing Webmaster verification', 'seo.verification.bing')}
+      </div>`;
+  }
+
+  function seoToolbox() {
+    const st = seoTools();
+    const rows = SITEMAP_PAGES.map(([id, label]) => {
+      const p = st.pages[id] || { on: true, lastmod: '' };
+      return `<label class="st-row"><input type="checkbox" data-st="page" data-st-page="${id}" ${p.on !== false ? 'checked' : ''} /><span class="st-name">${esc(label)}</span><input type="date" class="form-input cin" data-st="date" data-st-page="${id}" value="${esc(p.lastmod || '')}" aria-label="${esc(label)} last modified" /></label>`;
+    }).join('');
+    return `
+      <h4 class="cgroup-title">Sitemap &amp; robots.txt generator</h4>
+      <p class="content-hint">Crawlers fetch <code>sitemap.xml</code> and <code>robots.txt</code> as static files — JavaScript can't rewrite them at runtime, so this generator builds the content for you: tweak the pages/dates below, click a copy button, paste it over the file in the repo (github.com → open file → pencil icon) and commit.</p>
+      <div class="seo-toolbox">
+        <label class="cfield"><span class="clabel">Site URL (used in the generated files)</span><input class="form-input cin" data-st="siteUrl" value="${esc(st.siteUrl)}" /></label>
+        <span class="clabel">Pages — include &amp; last-modified date</span>
+        <div class="st-pages">${rows}</div>
+        <span class="clabel">Generated sitemap.xml</span>
+        <pre class="st-pre" id="st-sitemap">${esc(buildSitemapXml(st))}</pre>
+        <div class="publish-actions"><button class="mini-btn primary" id="st-copy-sitemap">Copy sitemap.xml</button></div>
+        <label class="cfield"><span class="clabel">robots.txt</span><textarea class="form-input cin" id="st-robots" rows="4">${esc(st.robots)}</textarea></label>
+        <div class="publish-actions">
+          <button class="mini-btn primary" id="st-copy-robots">Copy robots.txt</button>
+          <button class="mini-btn" id="st-robots-restore">Restore current file</button>
+        </div>
+      </div>`;
+  }
+
   function seoEdited(page) {
     const d = ((C.defaults() || {}).seo || {})[page] || {};
     const e = (state.content.seo || {})[page] || {};
@@ -842,9 +959,13 @@ service cloud.firestore {
   }
 
   function tabSeo() {
+    seedSeoToolsFromSite();
     return `
-      <p class="content-hint">Page-level SEO: the browser-tab title and the description shown under each page in Google results and WhatsApp/Facebook link previews. Aim for <strong>≤60</strong> characters in titles and <strong>≤160</strong> in descriptions — the preview below trims anything longer, just like Google. Fields are English (search engines index one version per page). Save &amp; Preview applies them in this browser instantly; publish the snippet for everyone, then give Google a few days to re-crawl.</p>
-      <div class="content-cards">${SEO_PAGES.map(p => seoCard(p[0], p[1], p[2])).join('')}</div>`;
+      ${seoVerificationCard()}
+      <h4 class="cgroup-title" style="margin-top:2rem">Page meta — titles &amp; descriptions</h4>
+      <p class="content-hint">The browser-tab title and the description shown under each page in Google results and WhatsApp/Facebook link previews. Aim for <strong>≤60</strong> characters in titles and <strong>≤160</strong> in descriptions — the preview below trims anything longer, just like Google. Fields are English (search engines index one version per page). Save &amp; Preview applies them in this browser instantly; publish the snippet for everyone, then give Google a few days to re-crawl.</p>
+      <div class="content-cards">${SEO_PAGES.map(p => seoCard(p[0], p[1], p[2])).join('')}</div>
+      ${seoToolbox()}`;
   }
 
   /** Live char counters + Google-style preview for one SEO page card. */
@@ -935,9 +1056,16 @@ service cloud.firestore {
         const p = el.dataset.bind;
         if (el.hasAttribute('data-features')) {
           setPath(state.content, p, el.value.split('\n').map(s => s.trim()).filter(Boolean));
+        } else if (p.lastIndexOf('seo.verification.', 0) === 0) {
+          // accept a pasted full <meta …> tag — keep only the extracted code
+          const m = el.value.match(/content\s*=\s*["']([^"']+)["']/i);
+          const v = m ? m[1].trim() : el.value.trim();
+          setPath(state.content, p, v);
+          if (m) el.value = v;
         } else {
           setPath(state.content, p, el.value);
         }
+        updateCountFor(p);
         updateContentStatus();
       });
     });
@@ -947,6 +1075,46 @@ service cloud.firestore {
       el.addEventListener('input', () => updateSeoPreview(el.dataset.seoInput));
     });
     SEO_PAGES.forEach(p => updateSeoPreview(p[0]));
+    c.querySelectorAll('[data-count-for]').forEach(el => updateCountFor(el.dataset.countFor));
+
+    // SEO toolbox: sitemap & robots generator (client-side helper state)
+    const stChange = el => {
+      const st = seoTools();
+      if (el.dataset.st === 'siteUrl') st.siteUrl = el.value;
+      else if (el.dataset.st === 'date') (st.pages[el.dataset.stPage] = st.pages[el.dataset.stPage] || {}).lastmod = el.value;
+      else if (el.dataset.st === 'page') (st.pages[el.dataset.stPage] = st.pages[el.dataset.stPage] || {}).on = el.checked;
+      saveSeoTools();
+      const pre = $('st-sitemap');
+      if (pre) pre.textContent = buildSitemapXml(st);
+    };
+    c.querySelectorAll('[data-st]').forEach(el => {
+      el.addEventListener('input', () => stChange(el));
+      el.addEventListener('change', () => stChange(el));
+    });
+    const stRobots = $('st-robots');
+    if (stRobots) stRobots.addEventListener('input', () => { seoTools().robots = stRobots.value; saveSeoTools(); });
+    const cpMap = $('st-copy-sitemap');
+    if (cpMap) cpMap.addEventListener('click', () => {
+      const text = buildSitemapXml(seoTools());
+      const done = () => { status.textContent = '✓ sitemap.xml copied — paste it over sitemap.xml in the repo and commit.'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      else fallbackCopy(text, done);
+    });
+    const cpRob = $('st-copy-robots');
+    if (cpRob) cpRob.addEventListener('click', () => {
+      const text = stRobots ? stRobots.value : seoTools().robots;
+      const done = () => { status.textContent = '✓ robots.txt copied — paste it over robots.txt in the repo and commit.'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      else fallbackCopy(text, done);
+    });
+    const rstRob = $('st-robots-restore');
+    if (rstRob) rstRob.addEventListener('click', () => {
+      const st = seoTools();
+      st.robots = st.robotsSite || ROBOTS_DEFAULT;
+      saveSeoTools();
+      if (stRobots) stRobots.value = st.robots;
+      status.textContent = 'Restored the robots.txt content currently in the repo.';
+    });
 
     // photo uploads → downscaled embedded data URL (instant preview)
     c.querySelectorAll('[data-imgbind]').forEach(inp => {

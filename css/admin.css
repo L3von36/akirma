@@ -759,3 +759,18 @@ body.admin-body.dark .serp-url { color: #e5e7eb; }
 body.admin-body.dark .serp-site { color: #9ca3af; }
 body.admin-body.dark .serp-title { color: #8ab4f8; }
 body.admin-body.dark .serp-desc { color: #bdc1c6; }
+
+/* ═══ SEO toolbox — verification, sitemap & robots generator (Task 8) ═══ */
+.seo-toolbox { border: 1px solid var(--surface-border, rgba(2,44,34,.12)); border-radius: 12px; padding: 1rem 1.1rem 1.2rem; background: rgba(5,150,105,.03); }
+body.admin-body.dark .seo-toolbox { background: rgba(255,255,255,.02); }
+.st-pages { display: flex; flex-direction: column; gap: .45rem; margin: .35rem 0 1rem; }
+.st-row { display: grid; grid-template-columns: auto 1fr 150px; align-items: center; gap: .75rem; cursor: pointer; }
+.st-row .st-name { font-size: .85rem; font-weight: 600; }
+.st-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: #059669; cursor: pointer; }
+.st-row input[type="date"] { padding: .4rem .6rem; font-size: .8rem; }
+.st-pre { background: #0f172a; color: #a7f3d0; border-radius: 10px; padding: .85rem 1rem; font-size: .74rem; line-height: 1.55; overflow-x: auto; white-space: pre; max-height: 260px; overflow-y: auto; margin: .35rem 0 .6rem; }
+body.admin-body:not(.dark) .st-pre { background: #10231d; color: #b9f0d8; }
+@media (max-width: 640px) {
+  .st-row { grid-template-columns: auto 1fr 120px; }
+  .st-row input[type="date"] { font-size: .72rem; }
+}
