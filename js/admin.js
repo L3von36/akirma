@@ -78,6 +78,7 @@
     $('admin-app').style.display = 'flex';
     $('mode-chip').textContent = fbReady ? 'LIVE · FIREBASE' : 'DEMO DATA';
     $('mode-chip').classList.toggle('live', fbReady);
+    updateContentBadge();
     refreshData();
   }
 
@@ -180,7 +181,7 @@
   }
 
   /* ── NAV ── */
-  const TITLES = { overview: 'Overview', inquiries: 'Inquiries', subscribers: 'Newsletter Subscribers', settings: 'Settings' };
+  const TITLES = { overview: 'Overview', inquiries: 'Inquiries', subscribers: 'Newsletter Subscribers', content: 'Website Content', settings: 'Settings' };
   document.querySelectorAll('.sb-link[data-view]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.view = btn.dataset.view;
@@ -218,6 +219,7 @@
     if (state.view === 'overview') return renderOverview(c);
     if (state.view === 'inquiries') return renderInquiries(c);
     if (state.view === 'subscribers') return renderSubscribers(c);
+    if (state.view === 'content') return renderContent(c);
     if (state.view === 'settings') return renderSettings(c);
   }
 
@@ -484,6 +486,375 @@ service cloud.firestore {
         <div class="setup-step"><span class="step-num">•</span><div><h4>This page is hidden from search engines</h4>
           <p><code>admin.html</code> has a noindex meta tag and is disallowed in <code>robots.txt</code>.</p></div></div>
       </div>`;
+  }
+
+  /* ══ CONTENT EDITOR (landing page) ══════════════════════
+     Edits the dynamic content of index.html through js/content.js:
+     - "Save & Preview" writes overrides to localStorage → visible on the
+       site in THIS browser immediately.
+     - "Copy publish snippet" produces the exact content for
+       js/site-overrides.js → commit it to publish for EVERY visitor.   */
+  const C = window.AkirmaContent;
+
+  const C_TABS = [
+    ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services (12)'],
+    ['events', 'Events (17)'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
+    ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'],
+  ];
+
+  function getPath(obj, path) {
+    return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+  }
+  function setPath(obj, path, val) {
+    const keys = path.split('.');
+    let o = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (o[keys[i]] == null) o[keys[i]] = {};
+      o = o[keys[i]];
+    }
+    o[keys[keys.length - 1]] = val;
+  }
+
+  function ensureContentState() {
+    if (!C) return;
+    if (!state.content) {
+      state.content = C.effective();
+      state.contentTab = state.contentTab || 'hero';
+      state.contentSaved = JSON.stringify(C.stored() || {});
+    }
+  }
+  function contentOverridesJson() {
+    return C ? JSON.stringify(C.diffFromDefaults(state.content)) : '{}';
+  }
+  function contentDirty() { return contentOverridesJson() !== state.contentSaved; }
+
+  function updateContentBadge() {
+    const b = $('badge-content');
+    if (!b || !C) return;
+    const has = C.stored() && Object.keys(C.stored()).length > 0;
+    b.style.display = has ? 'inline-flex' : 'none';
+  }
+
+  /* ── field builders (value comes from state.content at render time) ── */
+  function cField(label, path, opts) {
+    opts = opts || {};
+    const v = getPath(state.content, path);
+    const val = (opts.features && Array.isArray(v)) ? v.join('\n') : (v == null ? '' : String(v));
+    const chip = opts.lang ? `<em class="lang-chip ${opts.lang}">${opts.lang === 'en' ? 'EN' : 'አማ'}</em>` : '';
+    const fe = opts.features ? ' data-features="1"' : '';
+    const fld = opts.area
+      ? `<textarea class="form-input cin" data-bind="${path}"${fe} rows="${opts.rows || 3}">${esc(val)}</textarea>`
+      : `<input class="form-input cin" data-bind="${path}"${fe} value="${esc(val)}" />`;
+    return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}</span>${fld}</label>`;
+  }
+  /** Bilingual pair. tpl uses {L} → en/am (nested T fields). */
+  function cBi(label, tpl, opts) {
+    return `<div class="cfield-bi">${cField(label, tpl.replace('{L}', 'en'), Object.assign({}, opts, { lang: 'en' }))}${cField(label, tpl.replace('{L}', 'am'), Object.assign({}, opts, { lang: 'am' }))}</div>`;
+  }
+  /** Bilingual pair for flat items (…name / …nameAm). */
+  function cBiFlat(label, base, enKey, amKey, opts) {
+    return `<div class="cfield-bi">${cField(label, base + '.' + enKey, Object.assign({}, opts, { lang: 'en' }))}${cField(label, base + '.' + amKey, Object.assign({}, opts, { lang: 'am' }))}</div>`;
+  }
+  function itemCard(summary, body, open) {
+    return `<details class="item-card"${open ? ' open' : ''}><summary>${summary}</summary><div class="item-body">${body}</div></details>`;
+  }
+
+  /* ── TABS ── */
+  function tabHero() {
+    const stats = [0, 1, 2, 3].map(i => `
+      <div class="stat-edit-row">
+        ${cField('Stat ' + (i + 1) + ' number', 'stats.values.' + i)}
+        ${cField('Label', 't.en.hero.stats.labels.' + i, { lang: 'en' })}
+        ${cField('Label', 't.am.hero.stats.labels.' + i, { lang: 'am' })}
+      </div>`).join('');
+    return `
+      <div class="content-grid">
+        ${cBi('Eyebrow badge', 't.{L}.hero.eyebrow')}
+        ${cBi('Headline', 't.{L}.hero.headline_main', { area: true, rows: 2 })}
+        ${cBi('Subheadline', 't.{L}.hero.subheadline', { area: true, rows: 3 })}
+        ${cBi('Primary button', 't.{L}.hero.cta_primary')}
+        ${cBi('Secondary button', 't.{L}.hero.cta_secondary')}
+      </div>
+      <h4 class="cgroup-title">Hero stats (the 4 glass chips)</h4>
+      ${stats}`;
+  }
+
+  const C_SECTIONS = [
+    { key: 'services', label: 'Services' },
+    { key: 'events', label: 'Featured Events', extras: [['cta', 'Button label'], ['view_gallery', 'Image overlay label']] },
+    { key: 'testimonials', label: 'Testimonials' },
+    { key: 'faq', label: 'FAQ' },
+    { key: 'estimator', label: 'Budget Estimator' },
+    { key: 'contact', label: 'Contact' },
+  ];
+  function tabSections() {
+    const cards = C_SECTIONS.map(s => itemCard(`${esc(s.label)} section`, `
+      ${cBi('Eyebrow badge', 't.{L}.eyebrows.' + s.key)}
+      ${cBi('Title', 't.{L}.' + s.key + '.title')}
+      ${cBi('Description', 't.{L}.' + s.key + '.description', { area: true, rows: 2 })}
+      ${(s.extras || []).map(([f, lbl]) => cBi(lbl, 't.{L}.events.' + f)).join('')}
+    `)).join('');
+    const gallery = itemCard('Gallery section', cBi('Eyebrow badge', 't.{L}.eyebrows.gallery'));
+    return `<div class="content-cards">${cards}${gallery}</div>`;
+  }
+
+  function tabServices() {
+    const ids = Object.keys(state.content.services).sort((a, b) => Number(a) - Number(b));
+    return `<p class="content-hint">Shown on the landing page (first 6) and the Services page (all 12). Feature lists appear on the Services page (English only) — one item per line.</p>
+      <div class="content-cards">${ids.map(id => {
+        const s = state.content.services[id];
+        return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(s.name)} <span class="svc-am">${esc(s.nameAm)}</span>`, `
+          ${cBiFlat('Name', 'services.' + id, 'name', 'nameAm')}
+          ${cBiFlat('Description', 'services.' + id, 'desc', 'descAm', { area: true, rows: 2 })}
+          ${cField('Features (one per line)', 'services.' + id + '.features', { area: true, rows: 5, features: true })}
+        `);
+      }).join('')}</div>`;
+  }
+
+  function tabEvents() {
+    const ids = Object.keys(state.content.events).sort((a, b) => Number(a) - Number(b));
+    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Photos are managed in <code>images/events/</code>.</p>
+      <div class="content-cards">${ids.map(id => {
+        const e = state.content.events[id];
+        return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}`, `
+          ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
+          ${cBiFlat('Category', 'events.' + id, 'category', 'categoryAm')}
+          ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
+          ${cField('Year', 'events.' + id + '.year')}
+        `);
+      }).join('')}</div>`;
+  }
+
+  function tabTestimonials() {
+    const ids = Object.keys(state.content.testimonials).sort((a, b) => Number(a) - Number(b));
+    return `<div class="content-cards">${ids.map(id => {
+      const it = state.content.testimonials[id];
+      return itemCard(`<span class="svc-i">★</span> ${esc(it.author)}`, `
+        ${cBiFlat('Quote', 'testimonials.' + id, 'quote', 'quoteAm', { area: true, rows: 3 })}
+        ${cBiFlat('Author name', 'testimonials.' + id, 'author', 'authorAm')}
+        ${cBiFlat('Role / Title', 'testimonials.' + id, 'role', 'roleAm')}
+      `);
+    }).join('')}</div>`;
+  }
+
+  function tabFaq() {
+    const ids = Object.keys(state.content.faqs).sort((a, b) => Number(a) - Number(b));
+    return `<div class="content-cards">${ids.map(id => {
+      const f = state.content.faqs[id];
+      return itemCard(`<span class="svc-i">Q${esc(id)}</span> ${esc(f.q)}`, `
+        ${cBiFlat('Question', 'faqs.' + id, 'q', 'qAm')}
+        ${cBiFlat('Answer', 'faqs.' + id, 'a', 'aAm', { area: true, rows: 3 })}
+      `);
+    }).join('')}</div>`;
+  }
+
+  function tabIdentity() {
+    const goals = [0, 1, 2, 3, 4].map(i => itemCard(`Goal ${i + 1}: ${esc(getPath(state.content, 't.en.identity.goals.items.' + i + '.title') || '')}`, `
+      ${cBi('Title', 't.{L}.identity.goals.items.' + i + '.title')}
+      ${cBi('Description', 't.{L}.identity.goals.items.' + i + '.desc', { area: true, rows: 2 })}
+    `)).join('');
+    const objectives = [0, 1, 2, 3, 4, 5, 6, 7].map(i =>
+      cBi('Objective ' + (i + 1), 't.{L}.identity.objectives.items.' + i, { area: true, rows: 2 })).join('');
+    return `
+      <div class="content-grid">
+        ${cBi('Badge title', 't.{L}.identity.title')}
+        ${cBi('Main heading', 't.{L}.identity.subtitle', { area: true, rows: 2 })}
+        ${cBi('Vision title', 't.{L}.identity.vision.title')}
+        ${cBi('Vision text', 't.{L}.identity.vision.content', { area: true, rows: 4 })}
+        ${cBi('Mission title', 't.{L}.identity.mission.title')}
+        ${cBi('Mission text', 't.{L}.identity.mission.content', { area: true, rows: 4 })}
+      </div>
+      <h4 class="cgroup-title">Core Goals</h4>
+      <div class="content-cards">${goals}</div>
+      <h4 class="cgroup-title">Strategic Objectives</h4>
+      <div class="content-grid">${objectives}</div>`;
+  }
+
+  function tabWhy() {
+    const reasons = [0, 1, 2, 3, 4].map(i => cBi('Reason ' + (i + 1), 't.{L}.why_us.reasons.' + i)).join('');
+    return `
+      <div class="content-grid">
+        ${cBi('Title', 't.{L}.why_us.title')}
+        ${cBi('Description', 't.{L}.why_us.description', { area: true, rows: 3 })}
+      </div>
+      <h4 class="cgroup-title">Checklist items</h4>
+      <div class="content-grid">${reasons}</div>`;
+  }
+
+  function tabContact() {
+    const phones = [0, 1, 2].map(i => cField('Phone ' + (i + 1), 'contact.phones.' + i, { rows: 0 })).join('');
+    return `
+      <h4 class="cgroup-title">Phone numbers</h4>
+      <p class="content-hint">Tap-to-call links in the Contact section. Keep the format with country code, e.g. <code>+251 9XX XXX XXX</code>.</p>
+      <div class="content-grid">${phones}</div>
+      <h4 class="cgroup-title">Direct channels</h4>
+      <div class="content-grid">
+        ${cField('WhatsApp number (digits only, e.g. 251915843131)', 'contact.whatsapp')}
+        ${cField('Email address', 'contact.email')}
+        ${cField('Location line (EN)', 'contact.location.en', { lang: 'en' })}
+        ${cField('Location line (AM)', 'contact.location.am', { lang: 'am' })}
+      </div>
+      <p class="content-hint">The WhatsApp number powers the footer icon, the floating chat, and the contact-form fallback — changes apply after saving &amp; reloading the site.</p>`;
+  }
+
+  const C_TAB_RENDER = {
+    hero: tabHero, sections: tabSections, services: tabServices, events: tabEvents,
+    testimonials: tabTestimonials, faq: tabFaq, identity: tabIdentity, why: tabWhy, contact: tabContact,
+  };
+
+
+  /* ── CONTENT VIEW (render + actions) ── */
+  function renderContent(c) {
+    if (!C) {
+      c.innerHTML = '<div class="panel"><div class="empty-state"><p>js/content.js failed to load — content editing is unavailable.</p></div></div>';
+      return;
+    }
+    ensureContentState();
+
+    const snippet = 'window.AKIRMA_SITE_OVERRIDES = ' + JSON.stringify(C.diffFromDefaults(state.content), null, 2) + ';';
+
+    c.innerHTML = `
+      <div class="panel content-intro">
+        <div class="content-steps">
+          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page text below — headlines, stats, services, events, testimonials, FAQ, contact info.</p></div></div>
+          <div class="cstep"><span class="step-num">2</span><div><h4>Save &amp; Preview</h4><p>Saves to this browser. Open the website and your changes appear instantly (bilingual — check both EN and AM fields).</p></div></div>
+          <div class="cstep"><span class="step-num">3</span><div><h4>Publish</h4><p>Copy the snippet into <code>js/site-overrides.js</code> (editable on github.com) and commit — the change goes live for every visitor.</p></div></div>
+        </div>
+        <details class="publish-box">
+          <summary>Publish for every visitor / Export &amp; Import</summary>
+          <p>After saving, click <strong>Copy publish snippet</strong> and paste it over the empty object in <code>js/site-overrides.js</code>, then commit &amp; push (you can edit that file directly on github.com). Until published, changes are visible in <em>this browser only</em>.</p>
+          <pre id="publish-pre">${esc(snippet)}</pre>
+          <div class="publish-actions">
+            <button class="mini-btn primary" id="c-copy">${ICONS.download} Copy publish snippet</button>
+            <button class="mini-btn" id="c-export">${ICONS.download} Export JSON</button>
+            <button class="mini-btn" id="c-import-toggle">Import JSON</button>
+          </div>
+          <div id="c-import-wrap" style="display:none">
+            <textarea class="form-input cin" id="c-import-json" rows="6" placeholder='Paste an exported overrides JSON object here, then click Apply…'></textarea>
+            <div class="publish-actions"><button class="mini-btn primary" id="c-import-apply">Apply to form</button></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="subtabs" id="c-subtabs">
+        ${C_TABS.map(([id, label]) => `<button class="subtab ${state.contentTab === id ? 'active' : ''}" data-tab="${id}">${esc(label)}</button>`).join('')}
+      </div>
+
+      <div class="panel content-panel">
+        ${(C_TAB_RENDER[state.contentTab] || tabHero)()}
+      </div>
+
+      <div class="save-bar" id="c-savebar">
+        <span class="save-status" id="c-status">Ready</span>
+        <div class="save-actions">
+          <button class="mini-btn primary" id="c-save">Save &amp; Preview</button>
+          <button class="mini-btn" id="c-discard">Discard changes</button>
+          <button class="mini-btn danger" id="c-reset">Reset to defaults</button>
+        </div>
+      </div>`;
+
+    // sub-tab switching
+    c.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+      state.contentTab = b.dataset.tab;
+      render();
+    }));
+
+    // two-way binding
+    c.querySelectorAll('[data-bind]').forEach(el => {
+      el.addEventListener('input', () => {
+        const p = el.dataset.bind;
+        if (el.hasAttribute('data-features')) {
+          setPath(state.content, p, el.value.split('\n').map(s => s.trim()).filter(Boolean));
+        } else {
+          setPath(state.content, p, el.value);
+        }
+        updateContentStatus();
+      });
+    });
+
+    const status = $('c-status');
+    function updateContentStatus() {
+      const dirty = contentDirty();
+      status.textContent = dirty ? '● Unsaved changes' : (C.stored() ? 'Saved — visible in this browser (publish to make it live for everyone)' : 'No changes yet — showing published content');
+      status.classList.toggle('dirty', dirty);
+      c.querySelectorAll('.subtab').forEach(b => b.classList.toggle('active', b.dataset.tab === state.contentTab));
+    }
+    updateContentStatus();
+
+    // Save & Preview
+    $('c-save').addEventListener('click', () => {
+      const r = C.save(state.content);
+      if (!r.ok) { status.textContent = '✕ Could not save: ' + r.error; status.classList.add('dirty'); return; }
+      state.contentSaved = JSON.stringify(r.overrides);
+      updateContentStatus();
+      updateContentBadge();
+      status.textContent = '✓ Saved — open the website in this browser to see your changes. Use "Copy publish snippet" above to make them live for everyone.';
+    });
+
+    // Discard
+    $('c-discard').addEventListener('click', () => {
+      state.content = C.effective();
+      render();
+    });
+
+    // Reset
+    $('c-reset').addEventListener('click', () => {
+      if (!confirm('Reset ALL content edits for this browser back to the published defaults?')) return;
+      C.clear();
+      state.content = C.effective();
+      state.contentSaved = '{}';
+      render();
+      updateContentBadge();
+    });
+
+    // Copy publish snippet
+    $('c-copy').addEventListener('click', () => {
+      const text = 'window.AKIRMA_SITE_OVERRIDES = ' + JSON.stringify(C.diffFromDefaults(state.content), null, 2) + ';';
+      const done = () => { status.textContent = '✓ Snippet copied — paste it into js/site-overrides.js and commit to publish.'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      } else fallbackCopy(text, done);
+    });
+
+    // Export JSON
+    $('c-export').addEventListener('click', () => {
+      const data = JSON.stringify(C.diffFromDefaults(state.content), null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'akirma-content-overrides.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    });
+
+    // Import JSON
+    $('c-import-toggle').addEventListener('click', () => {
+      const w = $('c-import-wrap');
+      w.style.display = w.style.display === 'none' ? 'block' : 'none';
+    });
+    $('c-import-apply').addEventListener('click', () => {
+      const raw = $('c-import-json').value.trim();
+      if (!raw) return;
+      try {
+        const obj = JSON.parse(raw);
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('Not a JSON object');
+        C.deepMergeInto(state.content, obj);
+        render();
+      } catch (err) {
+        status.textContent = '✕ Import failed: ' + err.message;
+        status.classList.add('dirty');
+      }
+    });
+  }
+
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
   }
 
   /* ── GO ── */

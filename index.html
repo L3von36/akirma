@@ -114,10 +114,10 @@
         <a href="#featured-events" class="btn btn-hero-outline btn-lg" id="hero-cta2">View Our Events</a>
       </div>
       <div class="hero-stats" aria-label="Akirma Events at a glance">
-        <div class="hero-stat"><span class="hero-stat-num">500+</span><span class="hero-stat-label" id="hero-stat-1">Events Delivered</span></div>
-        <div class="hero-stat"><span class="hero-stat-num">7+</span><span class="hero-stat-label" id="hero-stat-2">Years of Excellence</span></div>
-        <div class="hero-stat"><span class="hero-stat-num">12</span><span class="hero-stat-label" id="hero-stat-3">Service Categories</span></div>
-        <div class="hero-stat"><span class="hero-stat-num">20K+</span><span class="hero-stat-label" id="hero-stat-4">Largest Event</span></div>
+        <div class="hero-stat"><span class="hero-stat-num" id="hero-stat-num-1">500+</span><span class="hero-stat-label" id="hero-stat-1">Events Delivered</span></div>
+        <div class="hero-stat"><span class="hero-stat-num" id="hero-stat-num-2">7+</span><span class="hero-stat-label" id="hero-stat-2">Years of Excellence</span></div>
+        <div class="hero-stat"><span class="hero-stat-num" id="hero-stat-num-3">12</span><span class="hero-stat-label" id="hero-stat-3">Service Categories</span></div>
+        <div class="hero-stat"><span class="hero-stat-num" id="hero-stat-num-4">20K+</span><span class="hero-stat-label" id="hero-stat-4">Largest Event</span></div>
       </div>
     </div>
   </div>
@@ -400,9 +400,11 @@
           </div>
           <div>
             <h4 id="contact-phone-label">Phone</h4>
-            <p><a class="contact-phone-link" href="tel:+251910977371">+251 910 977 371</a></p>
-            <p><a class="contact-phone-link" href="tel:+251915843131">+251 915 843 131</a></p>
-            <p><a class="contact-phone-link" href="tel:+251915895757">+251 915 895 757</a></p>
+            <div id="contact-phones">
+              <p><a class="contact-phone-link" href="tel:+251910977371">+251 910 977 371</a></p>
+              <p><a class="contact-phone-link" href="tel:+251915843131">+251 915 843 131</a></p>
+              <p><a class="contact-phone-link" href="tel:+251915895757">+251 915 895 757</a></p>
+            </div>
           </div>
         </div>
 
@@ -412,7 +414,7 @@
           </div>
           <div>
             <h4 id="contact-email-label">Email</h4>
-            <p>info@akirma.com</p>
+            <p id="contact-email-val">info@akirma.com</p>
           </div>
         </div>
 
@@ -422,13 +424,13 @@
           </div>
           <div>
             <h4 id="contact-loc-label">Location</h4>
-            <p>Bole Road, Addis Ababa, Ethiopia</p>
+            <p id="contact-loc-val">Bole Road, Addis Ababa, Ethiopia</p>
           </div>
         </div>
 
         <!-- Quick connect buttons -->
         <div class="contact-quick-btns">
-          <a href="https://wa.me/251915843131?text=Hello%20Akirma%20Events%2C%20I%27d%20like%20to%20inquire%20about%20your%20services."
+          <a id="contact-quick-wa" href="https://wa.me/251915843131?text=Hello%20Akirma%20Events%2C%20I%27d%20like%20to%20inquire%20about%20your%20services."
              target="_blank" rel="noopener" class="contact-quick-btn contact-quick-wa">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
             WhatsApp Us
@@ -551,6 +553,8 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/site-overrides.js"></script>
+<script src="js/content.js"></script>
 <script src="js/shared.js"></script>
 <script src="js/app.js" defer></script>
 </body>

@@ -3,6 +3,10 @@
  * Centralized data for all pages.
  */
 
+// Hero stat numbers (labels live in T.en/T.am.hero.stats.labels).
+// Editable from the admin dashboard; rendered by shared.js.
+const HERO_STATS = ['500+', '7+', '12', '20K+'];
+
 const SERVICES = [
   { 
     id: 1, 

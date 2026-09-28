@@ -486,6 +486,10 @@ function renderStaticText() {
       ['hero-stat-1', 'hero-stat-2', 'hero-stat-3', 'hero-stat-4'].forEach((id, i) => set(id, tr.hero.stats.labels[i]));
     }
   }
+  // Hero stat numbers (admin-editable via js/content.js overrides)
+  if (typeof HERO_STATS !== 'undefined' && Array.isArray(HERO_STATS)) {
+    HERO_STATS.forEach((v, i) => set('hero-stat-num-' + (i + 1), v));
+  }
   if (tr.eyebrows) {
     Object.keys(tr.eyebrows).forEach((key) => set('eyebrow-' + key, tr.eyebrows[key]));
   }

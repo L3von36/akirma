@@ -370,6 +370,44 @@ function renderContact() {
     tr.contact.form.types.map(type => `<option value="${type}">${type}</option>`).join('');
   if (prevVal && tr.contact.form.types.includes(prevVal)) select.value = prevVal;
   document.getElementById('form-title').textContent = lang === 'am' ? 'መልእክት ላኩልን' : 'Send us a message';
+  renderContactInfo();
+}
+
+// Contact info (phones / email / location / quick WhatsApp) from config +
+// admin Content overrides. Built via DOM APIs so admin input stays text-safe.
+function renderContactInfo() {
+  if (!window.AkirmaContent) return;
+  const ci = window.AkirmaContent.contactInfo();
+
+  const wrap = document.getElementById('contact-phones');
+  if (wrap) {
+    wrap.innerHTML = '';
+    ci.phones.forEach((p) => {
+      const tel = String(p).replace(/[^+0-9]/g, '');
+      const row = document.createElement('p');
+      const a = document.createElement('a');
+      a.className = 'contact-phone-link';
+      a.href = 'tel:' + tel;
+      a.textContent = p;
+      row.appendChild(a);
+      wrap.appendChild(row);
+    });
+  }
+
+  const emailEl = document.getElementById('contact-email-val');
+  if (emailEl && ci.email) emailEl.textContent = ci.email;
+
+  const locEl = document.getElementById('contact-loc-val');
+  if (locEl && ci.location) {
+    const locText = (lang === 'am' && ci.location.am) ? ci.location.am : ci.location.en;
+    if (locText) locEl.textContent = locText;
+  }
+
+  const wa = document.getElementById('contact-quick-wa');
+  if (wa && ci.whatsapp) {
+    wa.href = 'https://wa.me/' + ci.whatsapp.replace(/[^0-9]/g, '') +
+      '?text=' + encodeURIComponent("Hello Akirma Events, I'd like to inquire about your services.");
+  }
 }
 
 // ── GALLERY (homepage preview — 6 images only) ───────
