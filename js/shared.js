@@ -88,6 +88,12 @@ function akirmaNewsletterSubmit() {
     return;
   }
   const cfg = window.AKIRMA_CONFIG || {};
+
+  // Store the subscriber for the admin dashboard (fire-and-forget)
+  if (window.AkirmaStore) {
+    Promise.resolve(window.AkirmaStore.saveSubscriber(email)).catch(() => {});
+  }
+
   if (akirmaEmailjsReady(true) && typeof emailjs !== 'undefined') {
     emailjs.init(cfg.EMAILJS.PUBLIC_KEY);
     emailjs.send(cfg.EMAILJS.SERVICE_ID, cfg.EMAILJS.NEWSLETTER_TEMPLATE_ID, {
@@ -279,7 +285,7 @@ function renderSharedFooter() {
         <div class="footer-col">
           <h3>${tr.footer.connect}</h3>
           <div class="social-links">
-            <a href="https://wa.me/251915843131" target="_blank" rel="noopener" class="social-btn social-btn-wa" title="WhatsApp">
+            <a href="https://wa.me/${(window.AKIRMA_CONFIG && window.AKIRMA_CONFIG.WHATSAPP_NUMBER) || '251915843131'}" target="_blank" rel="noopener" class="social-btn social-btn-wa" title="WhatsApp">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
             </a>
             <a href="https://www.facebook.com/share/1CFo9pz9T1/?mibextid=wwXIfr" target="_blank" rel="noopener" class="social-btn social-btn-fb" title="Facebook">
@@ -340,7 +346,7 @@ function renderSharedFloatingChat() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.25rem;height:1.25rem"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>
           <span>${tr.chat.telegram}</span>
         </a>
-        <a href="https://wa.me/251915843131" target="_blank" rel="noopener" class="chat-link chat-link-wa">
+        <a href="https://wa.me/${(window.AKIRMA_CONFIG && window.AKIRMA_CONFIG.WHATSAPP_NUMBER) || '251915843131'}" target="_blank" rel="noopener" class="chat-link chat-link-wa">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.25rem;height:1.25rem"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
           <span>${tr.chat.whatsapp}</span>
         </a>

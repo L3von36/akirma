@@ -31,7 +31,7 @@
     "image": "https://akirmaevents.com/images/hero-bg.png",
     "@id": "https://akirmaevents.com/",
     "url": "https://akirmaevents.com/",
-    "telephone": "+251910977371",
+    "telephone": [ "+251910977371", "+251915843131", "+251915895757" ],
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Bole Road",
@@ -65,11 +65,18 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#059669" />
+<link rel="stylesheet" href="css/styles.css" />
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <!-- Site configuration (EmailJS keys, WhatsApp number, email) -->
   <script src="js/config.js"></script>
+  <!-- Admin dashboard data layer (safe no-op unless Firebase configured) -->
+  <script src="js/store.js" defer></script>
   <!-- Preconnect fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -393,8 +400,9 @@
           </div>
           <div>
             <h4 id="contact-phone-label">Phone</h4>
-            <p>+251 910 977 371</p>
-            <p>+251 915 843 131</p>
+            <p><a class="contact-phone-link" href="tel:+251910977371">+251 910 977 371</a></p>
+            <p><a class="contact-phone-link" href="tel:+251915843131">+251 915 843 131</a></p>
+            <p><a class="contact-phone-link" href="tel:+251915895757">+251 915 895 757</a></p>
           </div>
         </div>
 

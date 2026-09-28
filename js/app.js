@@ -295,6 +295,11 @@ async function submitContact(e) {
 
   const params = getContactParams();
 
+  // Store the inquiry for the admin dashboard (fire-and-forget — never blocks or fails the form)
+  if (window.AkirmaStore) {
+    Promise.resolve(window.AkirmaStore.saveInquiry(params)).catch(() => {});
+  }
+
   // Path A: EmailJS configured -> send a real email
   if (emailjsReady() && typeof emailjs !== 'undefined') {
     try {

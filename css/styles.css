@@ -2869,3 +2869,35 @@ body.dark ::-webkit-scrollbar-track { background: #0b1120; }
 @media (max-height: 700px) and (max-width: 640px) {
   .hero-scroll-hint { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   CONTACT PHONE LINKS (tel:)
+══════════════════════════════════════════════════════════ */
+.contact-phone-link {
+  color: var(--gray-600);
+  text-decoration: none;
+  transition: color 0.2s;
+  display: inline-block;
+  padding: 0.125rem 0;
+}
+body.dark .contact-phone-link { color: var(--gray-400); }
+.contact-phone-link:hover { color: var(--primary-600); }
+body.dark .contact-phone-link:hover { color: var(--primary-400); }
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE GRID SAFETY — prevent min-content blowout in grids
+══════════════════════════════════════════════════════════ */
+.goals-grid > *,
+.services-grid > *,
+.events-grid > *,
+.testi-grid > *,
+.objectives-grid > *,
+.vm-cards-grid > *,
+.blog-grid > * {
+  min-width: 0;
+}
+@media (max-width: 400px) {
+  .goals-grid { grid-template-columns: 1fr; }
+  .hero-ctas .btn { width: 100%; min-width: 0; }
+  .hero-ctas { flex-direction: column; }
+}
