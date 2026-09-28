@@ -287,7 +287,8 @@ const BLOG_POSTS = [
 const T = {
   en: {
     nav: { home: 'Home', services: 'Services', events: 'Events', testimonials: 'Testimonials', contact: 'Contact', book: 'Book an Event', gallery: 'Gallery', about: 'About', blog: 'Blog' },
-    hero: { headline_main: 'Crafting Unforgettable Moments Across Ethiopia', subheadline: 'From traditional weddings to corporate conferences, we bring your vision to life with cultural elegance and professional execution.', cta_primary: 'Request a Quote', cta_secondary: 'View Our Events' },
+    hero: { headline_main: 'Crafting Unforgettable Moments Across Ethiopia', subheadline: 'From traditional weddings to corporate conferences, we bring your vision to life with cultural elegance and professional execution.', cta_primary: 'Request a Quote', cta_secondary: 'View Our Events', eyebrow: "Ethiopia's Premier Event Company", stats: { labels: ['Events Delivered', 'Years of Excellence', 'Service Categories', 'Largest Event'] } },
+    eyebrows: { services: 'What We Do', events: 'Our Portfolio', testimonials: 'Client Stories', faq: 'Good to Know', estimator: 'Plan Your Budget', contact: 'Get In Touch', gallery: 'Photo Gallery' },
     services: { title: 'Our Services', description: 'We provide comprehensive event management services designed to make every occasion extraordinary.' },
     events: { title: 'Featured Events', description: 'Explore our portfolio of successfully delivered events across Ethiopia.', cta: 'View Portfolio', view_gallery: 'View Gallery' },
     why_us: { title: 'Why Choose Us?', description: 'We combine international standards with local expertise to deliver seamless, world-class events in Ethiopia.', reasons: ['Experienced local event professionals', 'Reliable wide network of Ethiopian vendors', 'On-time and on-budget delivery guarantee', 'Deeply culturally aware planning and design', 'End-to-end event management from A to Z'], placeholder: 'Professional Team' },
@@ -332,7 +333,8 @@ const T = {
   },
   am: {
     nav: { home: 'መነሻ', services: 'አገልግሎቶች', events: 'ዝግጅቶች', testimonials: 'ምስክርነቶች', contact: 'ያግኙን', book: 'ዝግጅት ይያዙ', gallery: 'ጋለሪ', about: 'ስለ እኛ', blog: 'ብሎግ' },
-    hero: { headline_main: 'የማይረሱ ትውስታዎችን በመላ ኢትዮጵያ እንፈጥራለን', subheadline: 'ከባህላዊ ሰርግ እስከ ኮርፖሬት ስብሰባዎች፣ ራዕይዎን በባህላዊ ውበት እና በሙያዊ ብቃት ወደ እውን እንለውጣለን።', cta_primary: 'ዋጋ ይጠይቁ', cta_secondary: 'ዝግጅቶቻችንን ይመልከቱ' },
+    hero: { headline_main: 'የማይረሱ ትውስታዎችን በመላ ኢትዮጵያ እንፈጥራለን', subheadline: 'ከባህላዊ ሰርግ እስከ ኮርፖሬት ስብሰባዎች፣ ራዕይዎን በባህላዊ ውበት እና በሙያዊ ብቃት ወደ እውን እንለውጣለን።', cta_primary: 'ዋጋ ይጠይቁ', cta_secondary: 'ዝግጅቶቻችንን ይመልከቱ', eyebrow: 'የኢትዮጵያ ቀዳሚ ዝግጅት ኩባንያ', stats: { labels: ['የተሰሩ ዝግጅቶች', 'የብልጽግና ዓመታት', 'የአገልግሎት ምድቦች', 'ትልቁ ዝግጅት'] } },
+    eyebrows: { services: 'ምን እንሰራለን', events: 'የእኛ ስራዎች', testimonials: 'የደንበኞች ታሪኮች', faq: 'ጠቃሚ መረጃ', estimator: 'በጀትዎን ያቅዱ', contact: 'ያግኙን', gallery: 'ፎቶ ጋለሪ' },
     services: { title: 'አገልግሎቶቻችን', description: 'እያንዳንዱን ዝግጅት ልዩ ለማድረግ የተነደፉ አጠቃላይ የዝግጅት አስተዳደር አገልግሎቶችን እንሰጣለን።' },
     events: { title: 'ተለይተው የቀረቡ', description: 'በመላው ኢትዮጵያ በተሳካ ሁኔታ ያከናወንናቸውን ዝግጅቶች ይመልከቱ።', cta: 'ፖርትፎሊዮ ይመልከቱ', view_gallery: 'ጋለሪ ይመልከቱ' },
     why_us: { title: 'ለምን እኛን ይምረጡ?', description: 'ዓለም አቀፍ ደረጃዎችን ከአካባቢ እውቀት ጋር በማጣመር እንከን የለሽ ዝግጅቶችን በኢትዮጵያ እናቀርባለን።', reasons: ['ልምድ ያላቸው የአካባቢ ዝግጅት ባለሙያዎች', 'ሰፊ እና አስተማማኝ አቅራቢዎች መረብ', 'በሰዓቱ እና በበጀት የማስረከብ ዋስትና', 'ባህልን ያገናዘበ እቅድ እና ንድፍ', 'ከሀ እስከ ፖ የተሟላ የዝግጅት አስተዳደር'], placeholder: 'ፕሮፌሽናል ቡድን' },

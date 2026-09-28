@@ -148,6 +148,8 @@ function toggleLang() {
   if (typeof renderAll === 'function') renderAll();
   else if (typeof renderPage === 'function') renderPage();
   else location.reload(); // Fallback
+  // Re-render static text hooks (hero eyebrow/stats, section eyebrows)
+  if (typeof renderStaticText === 'function') renderStaticText();
 }
 
 // ── SHARED RENDERERS ────────────────────────────────
@@ -403,11 +405,84 @@ function bindSharedEvents() {
     });
   }
 
-  // Header scroll shadow
+  // Header scroll shadow + scrolled state + global UI updates
   window.addEventListener('scroll', () => {
     const header = document.querySelector('header');
-    if (header) header.style.boxShadow = window.scrollY > 20 ? '0 1px 3px rgba(0,0,0,0.1)' : '';
+    const y = window.scrollY;
+    if (header) header.style.boxShadow = y > 20 ? '0 1px 3px rgba(0,0,0,0.1)' : '';
+    if (header) header.classList.toggle('scrolled', y > 24);
+    if (typeof updateScrollProgress === 'function') updateScrollProgress();
+    if (typeof updateBackToTop === 'function') updateBackToTop();
   }, { passive: true });
+}
+
+// ── GLOBAL UI (Task 3) — scroll progress bar + back-to-top ──
+function initGlobalUI() {
+  if (!document.getElementById('scroll-progress')) {
+    const bar = document.createElement('div');
+    bar.id = 'scroll-progress';
+    bar.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(bar);
+  }
+  if (!document.getElementById('back-to-top')) {
+    const btn = document.createElement('button');
+    btn.id = 'back-to-top';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Back to top');
+    btn.title = 'Back to top';
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>';
+    btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.body.appendChild(btn);
+  }
+  updateScrollProgress();
+  updateBackToTop();
+  initSliderFill();
+}
+
+function updateScrollProgress() {
+  const bar = document.getElementById('scroll-progress');
+  if (!bar) return;
+  const doc = document.documentElement;
+  const max = doc.scrollHeight - doc.clientHeight;
+  const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+  bar.style.width = pct + '%';
+}
+
+function updateBackToTop() {
+  const btn = document.getElementById('back-to-top');
+  if (!btn) return;
+  btn.classList.toggle('visible', window.scrollY > 600);
+}
+
+// Visual fill for the estimator range slider (purely presentational)
+function initSliderFill() {
+  const slider = document.getElementById('est-slider');
+  if (!slider) return;
+  const update = () => {
+    const min = parseFloat(slider.min) || 0;
+    const max = parseFloat(slider.max) || 100;
+    const val = parseFloat(slider.value) || 0;
+    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    slider.style.setProperty('--fill', pct + '%');
+  };
+  slider.addEventListener('input', update);
+  update();
+}
+
+// Static (non-rendered) text hooks that need translation on language toggle
+function renderStaticText() {
+  if (typeof T === 'undefined') return;
+  const tr = T[lang] || T.en;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+  if (tr.hero) {
+    set('hero-eyebrow', tr.hero.eyebrow);
+    if (tr.hero.stats && tr.hero.stats.labels) {
+      ['hero-stat-1', 'hero-stat-2', 'hero-stat-3', 'hero-stat-4'].forEach((id, i) => set(id, tr.hero.stats.labels[i]));
+    }
+  }
+  if (tr.eyebrows) {
+    Object.keys(tr.eyebrows).forEach((key) => set('eyebrow-' + key, tr.eyebrows[key]));
+  }
 }
 
 // ── INIT ───────────────────────────────────────────
@@ -415,4 +490,6 @@ document.addEventListener('DOMContentLoaded', () => {
   applyTheme();
   applyLang();
   initSharedComponents();
+  initGlobalUI();
+  renderStaticText();
 });
