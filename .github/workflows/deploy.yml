@@ -1,0 +1,47 @@
+# Deploys the Akirma Events site (static assets) to the Cloudflare Worker
+# "akirma" (akirmaevents.com) on every push to main.
+# Requires repo secrets: CLOUDFLARE_API_TOKEN (Workers Scripts: Edit),
+# CLOUDFLARE_ACCOUNT_ID.
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: workers-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy (wrangler)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler@4.142.0 deploy
+
+      - name: Smoke check (non-blocking)
+        run: |
+          sleep 5
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "https://akirmaevents.com/?smoke=$RANDOM")
+            echo "akirmaevents.com -> HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "::warning::homepage not 200 yet (possible edge cache lag) — deploy itself succeeded"
+          exit 0
