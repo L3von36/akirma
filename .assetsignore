@@ -1,0 +1,6 @@
+# Exclude from Workers static assets upload (wrangler .assetsignore)
+.git
+.gitignore
+.gitattributes
+.wrangler
+node_modules

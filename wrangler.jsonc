@@ -1,0 +1,13 @@
+// Cloudflare Workers Builds configuration — Akirma Events PLC (akirmaevents.com)
+// Static-assets-only Worker: serves the files in this repository root as-is.
+// The custom domain akirmaevents.com is attached to this Worker in the
+// Cloudflare dashboard and is intentionally NOT managed here, so deploys
+// never touch DNS or domain bindings.
+{
+  "$schema": "https://json.schemastore.org/wrangler.jsonc",
+  "name": "akirma",
+  "compatibility_date": "2026-09-26",
+  "assets": {
+    "directory": "."
+  }
+}
