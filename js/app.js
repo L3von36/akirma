@@ -10,6 +10,7 @@ let modalOpen = false;
 let modalIndex = 0;
 let estimatorGuests = 100;
 let estimatorLevel = 1;
+let faqOpenIndex = 0;
 
 const galleryImages = ALL_EVENTS.map(e => e.image);
 
@@ -18,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAll();
   bindEvents();
   initActiveNav();
-  initSkipLink();
 });
 
 // ── RENDER ALL ─────────────────────────────────────
@@ -187,15 +187,15 @@ function renderBudgetEstimator() {
   document.getElementById('est-book-btn').textContent = tr.nav.book;
 
   const levelData = [
-    { icon: ICONS.Shield, desc:'Quality essentials covered' },
-    { icon: ICONS.Sparkles, desc:'Enhanced decor & premium catering' },
-    { icon: ICONS.Award, desc:'Luxurious details & VIP services' },
+    { icon: ICONS.Shield },
+    { icon: ICONS.Sparkles },
+    { icon: ICONS.Award },
   ];
   document.getElementById('levels-grid').innerHTML = tr.estimator.levels.map((name, i) => `
     <button class="level-btn${i === estimatorLevel ? ' active' : ''}" onclick="setLevel(${i})">
       ${levelData[i].icon}
       <h4>${name}</h4>
-      <p>${levelData[i].desc}</p>
+      <p>${tr.estimator.level_desc[i]}</p>
     </button>
   `).join('');
 
@@ -218,9 +218,126 @@ function updateEstimate() {
   const max = Math.round(total * 1.15);
   document.getElementById('est-total').textContent = total.toLocaleString();
   document.getElementById('est-range').textContent = `${min.toLocaleString()} - ${max.toLocaleString()}`;
+  estimatorRange = { min, max };
 }
 
-// ── CONTACT ──────────────────────────────────────────
+// ── ESTIMATOR -> CONTACT FORM PREFILL ────────────
+function quoteFromEstimator() {
+  const tr = t();
+  const levels = tr.estimator.levels;
+  const min = estimatorRange.min.toLocaleString();
+  const max = estimatorRange.max.toLocaleString();
+  const msg = lang === 'am'
+    ? `ሰላም! የዋጋ ግምት ማስያዎን ተጠቅሜ ጥያቄ ማቅረብ እፈልጋለሁ።
+የእንግዶች ብዛት: ${estimatorGuests}
+የአገልግሎት ደረጃ: ${levels[estimatorLevel]}
+ግምታዊ ዋጋ: ETB ${min} - ${max}`
+    : `Hello! I'd like a quote based on your Budget Estimator.\nNumber of guests: ${estimatorGuests}\nService level: ${levels[estimatorLevel]}\nEstimated range: ETB ${min} - ${max}`;
+  const msgInput = document.getElementById('contact-msg-input');
+  if (msgInput) msgInput.value = msg;
+}
+
+let estimatorRange = { min: 0, max: 0 };
+
+// ── CONTACT HELPERS ──────────────────────────────
+function emailjsReady() {
+  const cfg = (window.AKIRMA_CONFIG && window.AKIRMA_CONFIG.EMAILJS) || {};
+  const ok = (k) => k && !String(k).startsWith('YOUR_');
+  return ok(cfg.SERVICE_ID) && ok(cfg.TEMPLATE_ID) && ok(cfg.PUBLIC_KEY);
+}
+
+function getContactParams() {
+  return {
+    from_name:  document.getElementById('contact-name-input').value.trim(),
+    from_email: document.getElementById('contact-email-input').value.trim(),
+    phone:      document.getElementById('contact-phone-input').value.trim(),
+    event_type: document.getElementById('contact-type-select').value,
+    event_date: document.getElementById('contact-date-input').value,
+    message:    document.getElementById('contact-msg-input').value.trim(),
+    to_name:    'Akirma Events Team',
+  };
+}
+
+function buildInquiryText(p) {
+  const L = t().contact.labels;
+  return [
+    lang === 'am' ? 'ሰላም አክርማ ኢቨንት!' : 'Hello Akirma Events!',
+    '',
+    `${L.name}: ${p.from_name}`,
+    `${L.email}: ${p.from_email || '-'}`,
+    `${L.phone}: ${p.phone || '-'}`,
+    `${L.eventType}: ${p.event_type || '-'}`,
+    `${L.date}: ${p.event_date || '-'}`,
+    '',
+    `${L.message}:`,
+    p.message || '-',
+  ].join('\n');
+}
+
+function setFormBusy(busy) {
+  const btn = document.getElementById('contact-submit');
+  if (busy) {
+    btn.innerHTML = `${ICONS.Loader} ${lang === 'am' ? 'እየተላከ...' : 'Sending...'}`;
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = t().contact.labels.submit;
+    btn.disabled = false;
+  }
+}
+
+// ── CONTACT ──────────────────────────────────────
+async function submitContact(e) {
+  e.preventDefault();
+  const successEl = document.getElementById('contact-success');
+  const errorEl   = document.getElementById('contact-error');
+  const tr = t();
+  if (errorEl) errorEl.style.display = 'none';
+
+  const params = getContactParams();
+
+  // Path A: EmailJS configured -> send a real email
+  if (emailjsReady() && typeof emailjs !== 'undefined') {
+    try {
+      setFormBusy(true);
+      const cfg = window.AKIRMA_CONFIG.EMAILJS;
+      emailjs.init(cfg.PUBLIC_KEY);
+      await emailjs.send(cfg.SERVICE_ID, cfg.TEMPLATE_ID, params);
+      successEl.querySelector('span').textContent = tr.form_sent_email;
+      successEl.classList.add('show');
+      document.getElementById('contact-form').reset();
+      setTimeout(() => successEl.classList.remove('show'), 7000);
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      if (errorEl) { errorEl.style.display = 'flex'; errorEl.querySelector('span').textContent = tr.form_error; }
+    } finally {
+      setFormBusy(false);
+    }
+    return;
+  }
+
+  // Path B: not configured -> hand off to WhatsApp so no inquiry is lost
+  setFormBusy(true);
+  await new Promise(r => setTimeout(r, 400));
+  setFormBusy(false);
+  window.open(akirmaWhatsAppLink(buildInquiryText(params)), '_blank', 'noopener');
+  successEl.querySelector('span').textContent = tr.form_sent_whatsapp;
+  successEl.classList.add('show');
+  document.getElementById('contact-form').reset();
+  setTimeout(() => successEl.classList.remove('show'), 8000);
+}
+
+// "Send via WhatsApp" secondary button
+function sendContactViaWhatsApp() {
+  const p = getContactParams();
+  if (!p.from_name || !p.phone) {
+    showToast(t().form_whatsapp_need_name, 'error');
+    return;
+  }
+  window.open(akirmaWhatsAppLink(buildInquiryText(p)), '_blank', 'noopener');
+  showToast(t().form_opening_whatsapp);
+}
+
+// ── CONTACT RENDER ───────────────────────────────
 function renderContact() {
   const tr = t();
   document.getElementById('contact-title').textContent = tr.contact.title;
@@ -232,66 +349,22 @@ function renderContact() {
   document.getElementById('contact-email2-label').textContent = tr.contact.labels.email;
   document.getElementById('contact-phone2-label').textContent = tr.contact.labels.phone;
   document.getElementById('contact-type-label').textContent = tr.contact.labels.eventType;
+  document.getElementById('contact-date-label').textContent = tr.contact.labels.date;
   document.getElementById('contact-msg-label').textContent = tr.contact.labels.message;
   document.getElementById('contact-submit').textContent = tr.contact.labels.submit;
+  document.getElementById('contact-whatsapp-btn').innerHTML = `${ICONS.WhatsApp} ${tr.contact.whatsapp_btn}`;
+  document.getElementById('contact-success-msg').textContent = tr.form_sent_email;
+  document.getElementById('contact-error-msg').textContent = tr.form_error;
   document.getElementById('contact-name-input').placeholder = tr.contact.form.name_placeholder;
   document.getElementById('contact-email-input').placeholder = tr.contact.form.email_placeholder;
   document.getElementById('contact-phone-input').placeholder = tr.contact.form.phone_placeholder;
   document.getElementById('contact-msg-input').placeholder = tr.contact.form.message_placeholder;
-  document.getElementById('contact-type-select').innerHTML = tr.contact.form.types.map(type =>
-    `<option value="${type}">${type}</option>`
-  ).join('');
+  const select = document.getElementById('contact-type-select');
+  const prevVal = select.value;
+  select.innerHTML = `<option value="">${tr.contact.form.type_placeholder}</option>` +
+    tr.contact.form.types.map(type => `<option value="${type}">${type}</option>`).join('');
+  if (prevVal && tr.contact.form.types.includes(prevVal)) select.value = prevVal;
   document.getElementById('form-title').textContent = lang === 'am' ? 'መልእክት ላኩልን' : 'Send us a message';
-}
-
-async function submitContact(e) {
-  e.preventDefault();
-  const btn = document.getElementById('contact-submit');
-  const successEl = document.getElementById('contact-success');
-  const errorEl   = document.getElementById('contact-error');
-
-  btn.innerHTML = `${ICONS.Loader} ${lang === 'am' ? 'እየተላከ...' : 'Sending...'}`;
-  btn.disabled = true;
-  if (errorEl) errorEl.style.display = 'none';
-
-  const params = {
-    from_name:  document.getElementById('contact-name-input').value,
-    from_email: document.getElementById('contact-email-input').value,
-    phone:      document.getElementById('contact-phone-input').value,
-    event_type: document.getElementById('contact-type-select').value,
-    event_date: document.getElementById('contact-date-input').value,
-    message:    document.getElementById('contact-msg-input').value,
-    to_name:    'Akirma Events Team',
-  };
-
-  const svcId  = window.EMAILJS_SERVICE_ID;
-  const tplId  = window.EMAILJS_TEMPLATE_ID;
-  const pubKey = window.EMAILJS_PUBLIC_KEY;
-  const emailjsReady = svcId && !svcId.startsWith('YOUR_') && typeof emailjs !== 'undefined';
-
-  try {
-    if (emailjsReady) {
-      emailjs.init(pubKey);
-      await emailjs.send(svcId, tplId, params);
-    } else {
-      // Demo mode — simulate delay
-      await new Promise(r => setTimeout(r, 1200));
-    }
-
-    // Success
-    successEl.classList.add('show');
-    document.getElementById('contact-form').reset();
-    btn.textContent = t().contact.labels.submit;
-    btn.disabled = false;
-    setTimeout(() => successEl.classList.remove('show'), 6000);
-
-    if (!emailjsReady) {
-    }
-  } catch (err) {
-    btn.textContent = t().contact.labels.submit;
-    btn.disabled = false;
-    if (errorEl) { errorEl.style.display = 'flex'; }
-  }
 }
 
 // ── GALLERY (homepage preview — 6 images only) ───────
@@ -389,6 +462,7 @@ function bindEvents() {
 
   // Contact form
   document.getElementById('contact-form').addEventListener('submit', submitContact);
+  document.getElementById('contact-whatsapp-btn').addEventListener('click', sendContactViaWhatsApp);
 
   // Lightbox
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -544,14 +618,6 @@ function initActiveNav() {
 }
 
 
-// ── SKIP LINK ─────────────────────────────────────────────
-function initSkipLink() {
-  const skip = document.createElement('a');
-  skip.href = '#services';
-  skip.className = 'skip-link';
-  skip.textContent = 'Skip to content';
-  document.body.prepend(skip);
-}
 
 // ── SWIPE SUPPORT FOR PHOTO MODAL (mobile) ────────────────
 function initModalSwipe() {

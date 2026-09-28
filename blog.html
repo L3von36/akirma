@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News &amp; Tips | Akirma Events PLC</title>
+  <meta name="description" content="Event planning guides, cultural celebration playbooks, and budgeting tips from Akirma Events PLC — Ethiopia's leading event organizer in Addis Ababa." />
+  <meta name="keywords" content="event planning tips ethiopia, habesha wedding checklist, corporate event trends addis ababa, meskel timket organization, event budget guide ethiopia, akirma events blog, ብሎግ, የዝግጅት ምክሮች, የሰርግ መመሪያ" />
+  <meta name="author" content="Akirma Events PLC" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="News &amp; Tips | Akirma Events PLC" />
+  <meta property="og:description" content="Guides, ideas, and company news to help you plan remarkable events in Ethiopia." />
+  <meta property="og:url" content="https://akirmaevents.com/blog.html" />
+  <meta property="og:image" content="https://akirmaevents.com/images/events/Traditional wedding decoration.jpg" />
+  <link rel="canonical" href="https://akirmaevents.com/blog.html" />
+  <!-- Breadcrumb Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://akirmaevents.com/"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Blog",
+      "item": "https://akirmaevents.com/blog.html"
+    }]
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .blog-page-hero {
+      background: linear-gradient(135deg, var(--primary-900) 0%, #1e3a5f 100%);
+      padding: 6rem 0 4rem;
+      text-align: center;
+      color: white;
+    }
+    .blog-page-hero h1 { margin-bottom: 0.75rem; }
+    .blog-page-hero p { color: rgba(255,255,255,0.7); font-size: clamp(1rem, 2.5vw, 1.125rem); max-width: 42rem; margin: 0 auto; }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: white; }
+    .back-btn svg { width: 1rem; height: 1rem; }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 0.375rem 1rem;
+      border-radius: 9999px;
+      border: 1px solid var(--gray-200);
+      background: white;
+      color: var(--gray-700);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    body.dark .filter-btn { background: var(--gray-800); border-color: var(--gray-700); color: var(--gray-300); }
+    .filter-btn.active, .filter-btn:hover { background: var(--primary-500); border-color: var(--primary-500); color: white; }
+
+    .blog-page-section { background-color: white; padding: 3rem 0 5rem; }
+    body.dark .blog-page-section { background-color: var(--gray-950); }
+
+    .blog-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    @media (min-width: 640px)  { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .blog-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; } }
+
+    .blog-card {
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 1rem;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    body.dark .blog-card { background: var(--gray-900); border-color: var(--gray-800); }
+    .blog-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+    .blog-card-img { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
+    .blog-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+    .blog-card:hover .blog-card-img img { transform: scale(1.05); }
+    .blog-card-cat {
+      position: absolute;
+      top: 0.75rem; left: 0.75rem;
+      background: var(--primary-500);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+    }
+    .blog-card-body { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem; flex: 1; }
+    .blog-card-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--gray-500); }
+    .blog-card-meta .dot { width: 3px; height: 3px; border-radius: 9999px; background: var(--gray-400); }
+    .blog-card h3 { font-size: 1.125rem; line-height: 1.4; color: var(--gray-900); margin: 0; }
+    body.dark .blog-card h3 { color: var(--gray-100); }
+    .blog-card p { font-size: 0.875rem; color: var(--gray-600); line-height: 1.6; margin: 0; }
+    body.dark .blog-card p { color: var(--gray-400); }
+    .blog-card-more {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--primary-500);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .blog-card-more svg { width: 1rem; height: 1rem; transition: transform 0.2s; }
+    .blog-card:hover .blog-card-more svg { transform: translateX(3px); }
+
+    /* Article reading view */
+    .blog-article {
+      display: none;
+      max-width: 46rem;
+      margin: 0 auto;
+    }
+    .blog-article.open { display: block; }
+    .blog-article-hero { position: relative; border-radius: 1rem; overflow: hidden; aspect-ratio: 16 / 8; margin-bottom: 1.5rem; }
+    .blog-article-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .blog-article-cat {
+      position: absolute;
+      top: 1rem; left: 1rem;
+      background: var(--primary-500);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+    }
+    .blog-article h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.25; margin: 0 0 0.75rem; }
+    .blog-article-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-bottom: 2rem;
+    }
+    .blog-article-meta .dot { width: 3px; height: 3px; border-radius: 9999px; background: var(--gray-400); }
+    .blog-article-body p {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--gray-700);
+      margin: 0 0 1.25rem;
+    }
+    body.dark .blog-article-body p { color: var(--gray-300); }
+    .blog-article-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--primary-500);
+      cursor: pointer;
+      background: none;
+      border: 1px solid var(--gray-200);
+      border-radius: 9999px;
+      padding: 0.5rem 1.25rem;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    body.dark .blog-article-back { border-color: var(--gray-700); }
+    .blog-article-back:hover { background: var(--primary-500); color: white; border-color: var(--primary-500); }
+    .blog-article-back svg { width: 1rem; height: 1rem; }
+
+    .blog-cta {
+      margin-top: 3rem;
+      padding: 2rem;
+      border-radius: 1rem;
+      background: linear-gradient(135deg, var(--primary-900), var(--primary-700));
+      color: white;
+      text-align: center;
+    }
+    .blog-cta h3 { margin: 0 0 0.5rem; font-size: 1.25rem; }
+    .blog-cta p { margin: 0 0 1.25rem; color: rgba(255,255,255,0.75); font-size: 0.9rem; }
+
+    #list-view.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Header (Injected by shared.js) -->
+<header></header>
+
+<!-- Hero -->
+<div class="blog-page-hero" id="main-content" style="padding-top:8rem;">
+  <div class="container">
+    <a href="index.html" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      <span id="back-label">Back to Home</span>
+    </a>
+    <h1 id="blog-page-title">News &amp; Tips</h1>
+    <p id="blog-page-desc">Guides, ideas, and company news to help you plan remarkable events in Ethiopia.</p>
+  </div>
+</div>
+
+<!-- Blog -->
+<section class="blog-page-section">
+  <div class="container">
+    <!-- List view -->
+    <div id="list-view">
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" onclick="filterPosts('All')" id="filter-all">All</button>
+        <button class="filter-btn" onclick="filterPosts('Wedding')" id="filter-wedding">Wedding</button>
+        <button class="filter-btn" onclick="filterPosts('Corporate')" id="filter-corporate">Corporate</button>
+        <button class="filter-btn" onclick="filterPosts('Culture')" id="filter-culture">Culture</button>
+        <button class="filter-btn" onclick="filterPosts('Tips')" id="filter-tips">Tips</button>
+      </div>
+      <div class="blog-grid" id="blog-grid"></div>
+    </div>
+
+    <!-- Article view -->
+    <div class="blog-article" id="blog-article">
+      <button class="blog-article-back" id="article-back" onclick="closeArticle()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+        <span id="article-back-label">Back to all posts</span>
+      </button>
+      <div class="blog-article-hero">
+        <img id="article-img" src="" alt="" />
+        <span class="blog-article-cat" id="article-cat"></span>
+      </div>
+      <h1 id="article-title"></h1>
+      <div class="blog-article-meta">
+        <span id="article-date"></span>
+        <span class="dot"></span>
+        <span id="article-read"></span>
+      </div>
+      <div class="blog-article-body" id="article-body"></div>
+    </div>
+
+    <!-- CTA -->
+    <div class="blog-cta">
+      <h3 id="cta-title">Planning an event? Let&rsquo;s talk.</h3>
+      <p id="cta-text">Our team designs, builds, and manages events of every size across Ethiopia.</p>
+      <a href="index.html#contact" class="btn btn-primary btn-md" id="cta-btn">Request a Quote</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer (Injected by shared.js) -->
+<footer></footer>
+
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/shared.js"></script>
+<script>
+let currentFilter = 'All';
+let openSlug = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderLabels();
+  renderGrid();
+  // Deep link support: blog.html#post-slug
+  if (location.hash && location.hash.length > 1) {
+    const slug = decodeURIComponent(location.hash.slice(1));
+    if (BLOG_POSTS.some(p => p.slug === slug)) openArticle(slug);
+  }
+  window.addEventListener('hashchange', () => {
+    if (location.hash && location.hash.length > 1) {
+      const slug = decodeURIComponent(location.hash.slice(1));
+      if (BLOG_POSTS.some(p => p.slug === slug)) openArticle(slug);
+    }
+  });
+});
+
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  if (lang === 'am') {
+    const months = ['ጃንዋሪ','ፌብሩዌሪ','ማርች','ኤፕሪል','ሜይ','ጁን','ጁላይ','ኦገስት','ሴፕቴምበር','ኦክቶበር','ኖቬምበር','ዲሴምበር'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function renderLabels() {
+  const tr = t();
+  document.getElementById('blog-page-title').textContent = tr.blog.title;
+  document.getElementById('blog-page-desc').textContent = tr.blog.subtitle;
+  document.getElementById('back-label').textContent = lang === 'am' ? 'ወደ ዋናው ገጽ' : 'Back to Home';
+  document.getElementById('filter-all').textContent = tr.blog.all;
+  document.getElementById('filter-wedding').textContent = lang === 'am' ? 'ሰርግ' : 'Wedding';
+  document.getElementById('filter-corporate').textContent = lang === 'am' ? 'ኮርፖሬት' : 'Corporate';
+  document.getElementById('filter-culture').textContent = lang === 'am' ? 'ባህል' : 'Culture';
+  document.getElementById('filter-tips').textContent = lang === 'am' ? 'ምክር' : 'Tips';
+  document.getElementById('article-back-label').textContent = tr.blog.back;
+  document.getElementById('cta-title').textContent = tr.blog.contact_cta;
+  document.getElementById('cta-text').textContent = lang === 'am'
+    ? 'ቡድናችን በመላ ኢትዮጵያ በማንኛውም መጠን ዝግጅቶችን ዲዛይን ያደርጋል፣ ያገናዝባል እና ያስተዳድራል።'
+    : 'Our team designs, builds, and manages events of every size across Ethiopia.';
+  document.getElementById('cta-btn').textContent = tr.hero.cta_primary;
+  if (openSlug) {
+    const p = BLOG_POSTS.find(x => x.slug === openSlug);
+    if (p) fillArticle(p);
+  }
+  renderGrid();
+}
+
+function filterPosts(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('#filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  const map = { All:'filter-all', Wedding:'filter-wedding', Corporate:'filter-corporate', Culture:'filter-culture', Tips:'filter-tips' };
+  document.getElementById(map[cat]).classList.add('active');
+  renderGrid();
+}
+
+function renderGrid() {
+  const tr = t();
+  const posts = currentFilter === 'All' ? BLOG_POSTS : BLOG_POSTS.filter(p => p.category === currentFilter);
+  document.getElementById('blog-grid').innerHTML = posts.map(p => `
+    <article class="blog-card" onclick="openArticle('${p.slug}')">
+      <div class="blog-card-img">
+        <img src="${encodeURI(p.image).replace(/#/g, '%23')}" alt="${p.title}" loading="lazy" onerror="this.style.display='none'">
+        <span class="blog-card-cat">${lang === 'am' ? p.categoryAm : p.category}</span>
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-meta">
+          <span>${fmtDate(p.date)}</span>
+          <span class="dot"></span>
+          <span>${p.read_min} ${tr.blog.min_read}</span>
+        </div>
+        <h3>${lang === 'am' ? p.titleAm : p.title}</h3>
+        <p>${lang === 'am' ? p.excerptAm : p.excerpt}</p>
+        <span class="blog-card-more">${tr.blog.read_more}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+        </span>
+      </div>
+    </article>
+  `).join('');
+}
+
+function openArticle(slug) {
+  const p = BLOG_POSTS.find(x => x.slug === slug);
+  if (!p) return;
+  openSlug = slug;
+  fillArticle(p);
+  document.getElementById('list-view').classList.add('hidden');
+  document.getElementById('blog-article').classList.add('open');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (location.hash !== '#' + slug) history.replaceState(null, '', '#' + slug);
+}
+
+function fillArticle(p) {
+  const tr = t();
+  document.getElementById('article-img').src = encodeURI(p.image).replace(/#/g, '%23');
+  document.getElementById('article-img').alt = p.title;
+  document.getElementById('article-cat').textContent = lang === 'am' ? p.categoryAm : p.category;
+  document.getElementById('article-title').textContent = lang === 'am' ? p.titleAm : p.title;
+  document.getElementById('article-date').textContent = `${tr.blog.published}: ${fmtDate(p.date)}`;
+  document.getElementById('article-read').textContent = `${p.read_min} ${tr.blog.min_read}`;
+  const paras = lang === 'am' ? p.contentAm : p.content;
+  document.getElementById('article-body').innerHTML = paras.map(t => `<p>${t}</p>`).join('');
+}
+
+function closeArticle() {
+  openSlug = null;
+  document.getElementById('blog-article').classList.remove('open');
+  document.getElementById('list-view').classList.remove('hidden');
+  history.replaceState(null, '', location.pathname);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

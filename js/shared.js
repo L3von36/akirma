@@ -35,7 +35,77 @@ const ICONS = {
   MagnifyingGlass: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" /></svg>`,
   MessageSquare: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>`,
   CheckCircleSolid: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.25rem;height:1.25rem"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>`,
+  ShieldCheck: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>`,
+  Shield: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.714 3.75 6v6c0 5.1 3.42 9.03 8.25 10.29C16.83 21.03 20.25 17.1 20.25 12V6L12 2.714Z" /></svg>`,
+  Zap: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" /></svg>`,
+  Award: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" /></svg>`,
+  BarChart: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>`,
+  Rocket: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" /></svg>`,
+  Sparkles: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>`,
+  Quote: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z" /></svg>`,
+  Loader: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="spin" style="width:1.25rem;height:1.25rem"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`,
+  WhatsApp: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>`,
+  Send: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>`,
 };
+
+// ── TOAST NOTIFICATIONS ──────────────────────────────
+function showToast(message, type) {
+  type = type || 'success';
+  document.querySelectorAll('.toast').forEach(el => el.remove());
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.setAttribute('role', 'status');
+  toast.innerHTML = `${type === 'error' ? ICONS.X : ICONS.CheckCircleSolid}<span>${message}</span>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 4500);
+}
+
+// ── EMAIL / WHATSAPP HELPERS (reads js/config.js) ─────────
+function akirmaEmailjsReady(withNewsletter) {
+  const cfg = (window.AKIRMA_CONFIG && window.AKIRMA_CONFIG.EMAILJS) || {};
+  const ok = (k) => k && !String(k).startsWith('YOUR_');
+  if (withNewsletter) return ok(cfg.SERVICE_ID) && ok(cfg.PUBLIC_KEY) && ok(cfg.NEWSLETTER_TEMPLATE_ID);
+  return ok(cfg.SERVICE_ID) && ok(cfg.PUBLIC_KEY) && ok(cfg.TEMPLATE_ID);
+}
+
+function akirmaWhatsAppLink(text) {
+  const num = (window.AKIRMA_CONFIG && window.AKIRMA_CONFIG.WHATSAPP_NUMBER) || '251915843131';
+  return `https://wa.me/${num}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
+}
+
+function akirmaNewsletterSubmit() {
+  const tr = t();
+  const input = document.getElementById('footer-nl-input');
+  if (!input) return;
+  const email = input.value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    showToast(tr.newsletter_invalid, 'error');
+    input.focus();
+    return;
+  }
+  const cfg = window.AKIRMA_CONFIG || {};
+  if (akirmaEmailjsReady(true) && typeof emailjs !== 'undefined') {
+    emailjs.init(cfg.EMAILJS.PUBLIC_KEY);
+    emailjs.send(cfg.EMAILJS.SERVICE_ID, cfg.EMAILJS.NEWSLETTER_TEMPLATE_ID, {
+      subscriber_email: email,
+      to_name: 'Akirma Events Team',
+    }).then(() => {
+      showToast(tr.newsletter_success);
+      input.value = '';
+    }).catch(() => showToast(tr.newsletter_error, 'error'));
+  } else {
+    // Fallback: open the visitor's mail app addressed to the company inbox
+    const subject = encodeURIComponent('Newsletter Subscription - Akirma Events');
+    const body = encodeURIComponent(`Hello Akirma Events,\n\nPlease subscribe me to your newsletter.\n\nEmail: ${email}`);
+    window.location.href = `mailto:${cfg.EMAIL_TO || 'info@akirma.com'}?subject=${subject}&body=${body}`;
+    showToast(tr.newsletter_mailto);
+    input.value = '';
+  }
+}
 
 // ── UTILS ──────────────────────────────────────────
 function t() { return T[lang]; }
@@ -72,6 +142,8 @@ function toggleLang() {
   lang = lang === 'en' ? 'am' : 'en';
   localStorage.setItem('language', lang);
   applyLang();
+  // Re-render shared header/footer/chat so nav labels switch language too
+  initSharedComponents();
   // Most pages need a re-render after language change
   if (typeof renderAll === 'function') renderAll();
   else if (typeof renderPage === 'function') renderPage();
@@ -111,6 +183,7 @@ function renderSharedHeader() {
           <a id="nav-events" href="${prefix}#featured-events">${tr.nav.events}</a>
           <a id="nav-testimonials" href="${prefix}#testimonials">${tr.nav.testimonials}</a>
           <a href="gallery.html" id="nav-gallery" class="${location.pathname.includes('gallery.html')?'active':''}">${tr.nav.gallery}</a>
+          <a href="blog.html" id="nav-blog" class="${location.pathname.includes('blog.html')?'active':''}">${tr.nav.blog}</a>
           <a id="nav-contact" href="${prefix}#contact">${tr.nav.contact}</a>
         </nav>
 
@@ -148,6 +221,7 @@ function renderSharedHeader() {
         <a id="mob-nav-events" href="${prefix}#featured-events">${tr.nav.events}</a>
         <a id="mob-nav-testimonials" href="${prefix}#testimonials">${tr.nav.testimonials}</a>
         <a href="gallery.html" class="${location.pathname.includes('gallery.html')?'active':''}">${tr.nav.gallery}</a>
+        <a href="blog.html" class="${location.pathname.includes('blog.html')?'active':''}">${tr.nav.blog}</a>
         <a id="mob-nav-contact" href="${prefix}#contact">${tr.nav.contact}</a>
         <div class="book-btn-wrap">
           <a href="${prefix}#contact" class="btn btn-primary btn-md" id="mob-nav-book">${tr.nav.book}</a>
@@ -184,6 +258,7 @@ function renderSharedFooter() {
             <li><a href="${prefix}#">${tr.nav.home}</a></li>
             <li><a href="services.html">${tr.nav.services}</a></li>
             <li><a href="gallery.html">${tr.nav.gallery}</a></li>
+            <li><a href="blog.html">${tr.nav.blog}</a></li>
             <li><a href="${prefix}#featured-events">${tr.nav.events}</a></li>
             <li><a href="${prefix}#testimonials">${tr.nav.testimonials}</a></li>
             <li><a href="${prefix}#contact">${tr.nav.contact}</a></li>
@@ -225,7 +300,7 @@ function renderSharedFooter() {
 
       <!-- Bottom -->
       <div class="footer-bottom">
-        <p>© 2025 Akirma Events PLC. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} Akirma Events PLC. All rights reserved.</p>
         <div class="footer-legal">
           <a href="akirma-price-list.pdf" target="_blank">${tr.footer.pricelist}</a>
           <a href="#">${tr.footer.privacy}</a>
@@ -237,7 +312,8 @@ function renderSharedFooter() {
 }
 
 function renderSharedFloatingChat() {
-  if (document.querySelector('.floating-chat')) return; // Already exists?
+  const existing = document.querySelector('.floating-chat');
+  if (existing) existing.remove(); // Rebuild so language changes apply
 
   const tr = t();
   const div = document.createElement('div');
@@ -305,6 +381,15 @@ function bindSharedEvents() {
       document.getElementById('hamburger-icon').innerHTML = ICONS.Menu;
     });
   });
+
+  // Newsletter
+  const nlBtn = document.getElementById('footer-nl-btn');
+  if (nlBtn) {
+    nlBtn.addEventListener('click', akirmaNewsletterSubmit);
+    document.getElementById('footer-nl-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); akirmaNewsletterSubmit(); }
+    });
+  }
 
   // Chat
   const chatToggle = document.getElementById('chat-toggle');

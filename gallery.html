@@ -158,9 +158,15 @@
 
 <!-- Modal structure (common across all event pages if needed, otherwise specific) -->
 <div class="photo-modal" id="photo-modal" role="dialog" aria-modal="true">
-  <button class="photo-modal-close" id="modal-close" aria-label="Close">${ICONS.X}</button>
-  <button class="photo-modal-prev" id="modal-prev" aria-label="Previous">${ICONS.ChevronLeft}</button>
-  <button class="photo-modal-next" id="modal-next" aria-label="Next">${ICONS.ChevronRight}</button>
+  <button class="photo-modal-close" id="modal-close" aria-label="Close">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+  </button>
+  <button class="photo-modal-prev" id="modal-prev" aria-label="Previous">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+  </button>
+  <button class="photo-modal-next" id="modal-next" aria-label="Next">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+  </button>
   <div class="photo-modal-inner">
     <div class="photo-modal-img-wrap"><img id="modal-img" src="" alt="Gallery image" /></div>
     <div class="photo-modal-caption">
@@ -171,6 +177,7 @@
   </div>
 </div>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/shared.js"></script>
 <script>
