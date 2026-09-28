@@ -499,7 +499,7 @@ service cloud.firestore {
   const C_TABS = [
     ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services (12)'],
     ['events', 'Events (17)'], ['blog', 'Blog'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
-    ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'],
+    ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'], ['seo', 'SEO']
   ];
 
   function getPath(obj, path) {
@@ -794,7 +794,79 @@ service cloud.firestore {
   const C_TAB_RENDER = {
     hero: tabHero, sections: tabSections, services: tabServices, events: tabEvents, blog: tabBlog,
     testimonials: tabTestimonials, faq: tabFaq, identity: tabIdentity, why: tabWhy, contact: tabContact,
+    seo: tabSeo,
   };
+
+  /* ── SEO tab (per-page meta titles / descriptions) ── */
+  const SEO_PAGES = [
+    ['home', 'Home page', 'akirmaevents.com'],
+    ['services', 'Services page', 'akirmaevents.com/services.html'],
+    ['gallery', 'Gallery page', 'akirmaevents.com/gallery.html'],
+    ['about', 'About page', 'akirmaevents.com/about.html'],
+    ['blog', 'News & Tips page', 'akirmaevents.com/blog.html'],
+  ];
+
+  function seoEdited(page) {
+    const d = ((C.defaults() || {}).seo || {})[page] || {};
+    const e = (state.content.seo || {})[page] || {};
+    return String(e.title || '') !== String(d.title || '') ||
+           String(e.description || '') !== String(d.description || '');
+  }
+
+  function seoCard(page, label, url) {
+    const seo = (state.content.seo || {})[page] || {};
+    const title = seo.title || '';
+    const desc = seo.description || '';
+    const edited = seoEdited(page);
+    return itemCard(
+      `<span class="svc-i">G</span> ${esc(label)} <span class="seo-sum-url">${esc(url)}</span>${edited ? ' <em class="lang-chip en">edited</em>' : ''}`,
+      `
+      <div class="seo-field">
+        <span class="clabel">Meta title — browser tab &amp; Google headline <em class="seo-count" data-seo-count="${page}" data-seo-for="title"></em></span>
+        <input class="form-input cin" data-bind="seo.${page}.title" data-seo-input="${page}" maxlength="120" value="${esc(title)}" />
+      </div>
+      <div class="seo-field">
+        <span class="clabel">Meta description — Google snippet &amp; WhatsApp/Facebook previews <em class="seo-count" data-seo-count="${page}" data-seo-for="description"></em></span>
+        <textarea class="form-input cin" rows="3" maxlength="320" data-bind="seo.${page}.description" data-seo-input="${page}">${esc(desc)}</textarea>
+      </div>
+      <div class="clabel">Search preview (Google)</div>
+      <div class="serp" data-serp="${page}">
+        <div class="serp-url"><span class="serp-fav"></span><span class="serp-site">Akirma Events PLC</span> › ${esc(url)}</div>
+        <div class="serp-title" data-seo-prev="${page}" data-seo-for="title">${esc(title)}</div>
+        <div class="serp-desc" data-seo-prev="${page}" data-seo-for="description">${esc(desc)}</div>
+      </div>
+      `,
+      false,
+      `data-seo-card="${page}"`
+    );
+  }
+
+  function tabSeo() {
+    return `
+      <p class="content-hint">Page-level SEO: the browser-tab title and the description shown under each page in Google results and WhatsApp/Facebook link previews. Aim for <strong>≤60</strong> characters in titles and <strong>≤160</strong> in descriptions — the preview below trims anything longer, just like Google. Fields are English (search engines index one version per page). Save &amp; Preview applies them in this browser instantly; publish the snippet for everyone, then give Google a few days to re-crawl.</p>
+      <div class="content-cards">${SEO_PAGES.map(p => seoCard(p[0], p[1], p[2])).join('')}</div>`;
+  }
+
+  /** Live char counters + Google-style preview for one SEO page card. */
+  function updateSeoPreview(page) {
+    const seo = (state.content.seo || {})[page] || {};
+    const t = String(seo.title || '');
+    const d = String(seo.description || '');
+    document.querySelectorAll(`[data-seo-count="${page}"]`).forEach(el => {
+      const isT = el.dataset.seoFor === 'title';
+      const n = isT ? t.length : d.length;
+      const max = isT ? 60 : 160;
+      el.textContent = n + '/' + max;
+      el.classList.toggle('over', n > max);
+      el.classList.toggle('near', n > max - 15 && n <= max);
+    });
+    document.querySelectorAll(`[data-seo-prev="${page}"]`).forEach(el => {
+      const isT = el.dataset.seoFor === 'title';
+      const raw = isT ? t : d;
+      const max = isT ? 60 : 160;
+      el.textContent = raw.length > max ? raw.slice(0, max - 1) + '…' : (raw || '—');
+    });
+  }
 
 
   /* ── CONTENT VIEW (render + actions) ── */
@@ -810,7 +882,7 @@ service cloud.firestore {
     c.innerHTML = `
       <div class="panel content-intro">
         <div class="content-steps">
-          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page content below — headlines, stats, services, events &amp; photos, blog posts, testimonials, FAQ, contact info.</p></div></div>
+          <div class="cstep"><span class="step-num">1</span><div><h4>Edit</h4><p>Change any landing-page content below — headlines, stats, services, events &amp; photos, blog posts, testimonials, FAQ, contact info — plus each page's SEO title &amp; description (SEO tab).</p></div></div>
           <div class="cstep"><span class="step-num">2</span><div><h4>Save &amp; Preview</h4><p>Saves to this browser. Open the website and your changes appear instantly (bilingual — check both EN and AM fields).</p></div></div>
           <div class="cstep"><span class="step-num">3</span><div><h4>Publish</h4><p>Copy the snippet into <code>js/site-overrides.js</code> (editable on github.com) and commit — the change goes live for every visitor.</p></div></div>
         </div>
@@ -869,6 +941,12 @@ service cloud.firestore {
         updateContentStatus();
       });
     });
+
+    // SEO: live counters + Google preview (state is updated by the binding above)
+    c.querySelectorAll('[data-seo-input]').forEach(el => {
+      el.addEventListener('input', () => updateSeoPreview(el.dataset.seoInput));
+    });
+    SEO_PAGES.forEach(p => updateSeoPreview(p[0]));
 
     // photo uploads → downscaled embedded data URL (instant preview)
     c.querySelectorAll('[data-imgbind]').forEach(inp => {

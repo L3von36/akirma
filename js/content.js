@@ -26,8 +26,14 @@
  *                                content[], contentAm[] , _deleted? } },
  *      testimonials: { "<id>": { quote, quoteAm, author, authorAm, role, roleAm } },
  *      faqs:         { "<id>": { q, qAm, a, aAm } },
- *      contact:      { phones: [...], whatsapp, email, location: { en, am } }
+ *      contact:      { phones: [...], whatsapp, email, location: { en, am } },
+ *      seo:          { home: { title, description }, services: {…}, gallery: {…},
+ *                      about: {…}, blog: {…} }
  *    }
+ *
+ *  SEO notes: one English title/description per page (search engines index
+ *  a single version). applySeo() rewrites <title>, meta[name=description]
+ *  and the og:/twitter: equivalents on the matching page at load time.
  *
  *  Blog notes: ids that do not exist in data.js are ADDED as new posts;
  *  an item with _deleted: true is removed from the site. Unknown/new ids
@@ -108,6 +114,30 @@
       whatsapp: cfg.WHATSAPP_NUMBER || '',
       email:    cfg.EMAIL_TO || '',
       location: { en: 'Bole Road, Addis Ababa, Ethiopia', am: 'ቦሌ መንገድ፣ አዲስ አበባ፣ ኢትዮጵያ' },
+    },
+    // Page-level SEO defaults (mirrors the <title>/meta description in the HTML
+    // heads — keep in sync when editing the HTML files directly).
+    seo: {
+      home: {
+        title: 'Akirma Events PLC | #1 Event Organizer in Ethiopia',
+        description: "Akirma Events PLC (አክርማ ኢቨንት) is Ethiopia's leading event organizer. Weddings, corporate conferences, cultural events & more in Addis Ababa and nationwide.",
+      },
+      services: {
+        title: 'Our Services | Akirma Events PLC',
+        description: 'Akirma Events PLC offers 12 professional event services in Ethiopia — weddings, corporate events, decoration, sound & light, catering, and more in Addis Ababa.',
+      },
+      gallery: {
+        title: 'Gallery | Akirma Events',
+        description: 'View our portfolio of successful events across Ethiopia. Corporate, weddings, government ceremonies, and more by Akirma Events PLC.',
+      },
+      about: {
+        title: 'About Us | Akirma Events PLC',
+        description: "Learn about Akirma Events PLC — Ethiopia's leading event organizer. Our story, mission, values, and the team behind every unforgettable moment.",
+      },
+      blog: {
+        title: 'News & Tips | Akirma Events PLC',
+        description: "Event planning guides, cultural celebration playbooks, and budgeting tips from Akirma Events PLC — Ethiopia's leading event organizer in Addis Ababa.",
+      },
     },
   };
   // Items keep only editor-managed fields (icons etc. stay in data.js)
@@ -221,9 +251,40 @@
     list.sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
   }
 
+  /* ── SEO: which page is this? + apply meta overrides ───── */
+  function pageId() {
+    var p = String(location.pathname || '').split('/').pop();
+    if (!p || p === 'index.html') return 'home';
+    var m = p.match(/^([a-z]+)\.html$/i);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  /** Rewrite <title>, meta description + og:/twitter: tags for THIS page. */
+  function applySeo(ov) {
+    if (!isObj(ov)) return;
+    var o = ov[pageId()];
+    if (!isObj(o)) return;
+    var title = (typeof o.title === 'string' && o.title.trim()) ? o.title.trim() : null;
+    var desc  = (typeof o.description === 'string' && o.description.trim()) ? o.description.trim() : null;
+    if (title) {
+      document.title = title;
+      ['meta[property="og:title"]', 'meta[name="twitter:title"]'].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el) el.setAttribute('content', title);
+      });
+    }
+    if (desc) {
+      ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]'].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el) el.setAttribute('content', desc);
+      });
+    }
+  }
+
   function apply() {
     var ov = mergedOverrides();
     if (!ov) return;
+    applySeo(ov.seo);
 
     if (isObj(ov.t)) {
       if (isObj(ov.t.en)) deepMerge(T.en, ov.t.en);
