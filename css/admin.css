@@ -1387,6 +1387,10 @@ select.form-input {
   padding-right: 2.1rem; cursor: pointer;
 }
 
+/* category select + revealed custom input */
+.ccat-in { margin-top: .5rem; border-style: dashed; }
+.ccat-in::placeholder { color: #94a3b8; }
+
 @media (max-width: 720px) {
   .cnav { max-width: none; }
   .eyear-row { align-items: stretch; flex-direction: column; gap: .6rem; }

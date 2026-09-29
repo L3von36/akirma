@@ -72,7 +72,7 @@
   /* Must match the data-v attribute on <html> in admin.html. When they
    * differ, the visitor is running a cached JS/HTML mix — we warn instead
    * of silently misbehaving (the 2026-09 stale-cache reset-button bug). */
-  const ADMIN_UI_VERSION = '20260930b';
+  const ADMIN_UI_VERSION = '20260930c';
 
   function hideLoginBanners() {
     $('login-error').style.display = 'none';
@@ -1079,6 +1079,25 @@
      year picker, featured switch, danger zone ── */
   const EVENT_CATS_EN = ['Wedding', 'Corporate', 'Government', 'Decoration', 'Social', 'Concert'];
   const EVENT_CATS_AM = ['ሰርግ', 'ኮርፖሬት', 'መንግስታዊ', 'ዲኮር', 'ማህበራዊ', 'ኮንሰርት'];
+  const BLOG_CATS_EN = ['Wedding', 'Corporate', 'Culture', 'Tips'];
+  const BLOG_CATS_AM = ['ሰርግ', 'ኮርፖሬት', 'ባህል', 'ምክር'];
+  /** Category <select> — every category is visible on one click. (The previous
+   *  datalist filtered suggestions by the current value, so with "Corporate"
+   *  in the field the other categories never showed.) A saved custom category
+   *  becomes an extra selected option; "Other / custom…" reveals a free-text
+   *  input — anything outside the built-in filters still shows under "All". */
+  function cCat(label, path, lang, cats) {
+    const v = String(getPath(state.content, path) || '').trim();
+    const known = cats.indexOf(v) !== -1;
+    const chip = `<em class="lang-chip ${lang}">${lang === 'en' ? 'EN' : 'አማ'}</em>`;
+    const opts = cats.map(c => `<option value="${esc(c)}"${c === v ? ' selected' : ''}>${esc(c)}</option>`).join('')
+      + (v && !known ? `<option value="${esc(v)}" selected>${esc(v)}</option>` : '')
+      + (v ? '' : '<option value="" selected>— no category —</option>');
+    return `<label class="cfield ccat"><span class="clabel">${esc(label)} ${chip}</span>`
+      + `<select class="form-input cin" data-bind="${path}" data-catselect="${path}">${opts}<option value="__other__">Other / custom&hellip;</option></select>`
+      + `<input class="form-input cin ccat-in" type="text" data-bind="${path}" data-catcustom="${path}" value="${esc(v)}" placeholder="Type a custom category&hellip;"${v && !known ? '' : ' style="display:none"'} />`
+      + `</label>`;
+  }
   /** Year <select> (2015 → next year; keeps any existing out-of-range value). */
   function cYear(label, path) {
     const raw = getPath(state.content, path);
@@ -1118,8 +1137,8 @@
           <div class="egrid">
             ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
             <div class="cfield-bi">
-              ${cField('Category', 'events.' + id + '.category', { lang: 'en', datalist: EVENT_CATS_EN })}
-              ${cField('Category', 'events.' + id + '.categoryAm', { lang: 'am', datalist: EVENT_CATS_AM })}
+              ${cCat('Category', 'events.' + id + '.category', 'en', EVENT_CATS_EN)}
+              ${cCat('Category', 'events.' + id + '.categoryAm', 'am', EVENT_CATS_AM)}
             </div>
             <p class="chint eg-hint">Site filters: Wedding, Corporate, Government, Decoration — other categories still appear under &ldquo;All&rdquo;.</p>
             ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
@@ -1195,7 +1214,10 @@
         `
         ${cBiFlat('Title', 'blog.' + id, 'title', 'titleAm')}
         ${cBiFlat('Excerpt (shown on the card)', 'blog.' + id, 'excerpt', 'excerptAm', { area: true, rows: 2 })}
-        ${cBiFlat('Category (site filters: Wedding, Corporate, Culture, Tips)', 'blog.' + id, 'category', 'categoryAm')}
+        <div class="cfield-bi">
+          ${cCat('Category', 'blog.' + id + '.category', 'en', BLOG_CATS_EN)}
+          ${cCat('Category', 'blog.' + id + '.categoryAm', 'am', BLOG_CATS_AM)}
+        </div>
         <div class="post-meta-row">
           ${cField('Date', 'blog.' + id + '.date', { date: true })}
           ${cField('Read time (min)', 'blog.' + id + '.read_min', { num: true })}
@@ -1621,6 +1643,7 @@
     c.querySelectorAll('[data-bind]').forEach(el => {
       el.addEventListener('input', () => {
         const p = el.dataset.bind;
+        if (el.dataset.catselect != null && el.value === '__other__') return; // sentinel — never stored
         if (el.hasAttribute('data-features')) {
           setPath(state.content, p, el.value.split('\n').map(s => s.trim()).filter(Boolean));
         } else if (p.lastIndexOf('seo.verification.', 0) === 0) {
@@ -1635,6 +1658,23 @@
         updateCountFor(p);
         if (p.lastIndexOf('aeo.', 0) === 0) updateAeoPreview();
         updateContentStatus();
+      });
+    });
+
+    // Category selects: "Other / custom…" reveals the free-text input,
+    // picking a known category hides it again
+    c.querySelectorAll('[data-catselect]').forEach(sel => {
+      const inp = c.querySelector('[data-catcustom="' + (sel.dataset.catselect || '').replace(/"/g, '\\"') + '"]');
+      if (!inp) return;
+      sel.addEventListener('change', () => {
+        if (sel.value === '__other__') {
+          const cur = getPath(state.content, sel.dataset.catselect);
+          inp.value = cur == null ? '' : String(cur);
+          inp.style.display = '';
+          inp.focus();
+        } else {
+          inp.style.display = 'none';
+        }
       });
     });
 
