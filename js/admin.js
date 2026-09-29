@@ -69,15 +69,35 @@
    * emails a single-use reset link (?reset=<token>) to the owner inbox. */
   let resetMode = false; // true when arriving from an emailed ?reset=<token> link
 
+  /* Must match the data-v attribute on <html> in admin.html. When they
+   * differ, the visitor is running a cached JS/HTML mix — we warn instead
+   * of silently misbehaving (the 2026-09 stale-cache reset-button bug). */
+  const ADMIN_UI_VERSION = '20260929a';
+
+  function hideLoginBanners() {
+    $('login-error').style.display = 'none';
+    $('login-info').style.display = 'none';
+  }
+
   function showLogin() {
     $('admin-login').style.display = 'flex';
     $('admin-app').style.display = 'none';
     $('login-form').style.display = resetMode ? 'none' : 'flex';
     $('forgot-area').style.display = resetMode ? 'none' : '';
     $('reset-form').style.display = resetMode ? 'flex' : 'none';
+    const eyebrow = $('login-eyebrow');
+    const title = $('login-title');
+    if (eyebrow) eyebrow.textContent = resetMode ? 'Password reset' : 'Secure admin access';
+    if (title) title.textContent = resetMode ? 'Set a new password' : 'Akirma Admin';
     $('login-sub').textContent = resetMode
       ? 'Choose a new admin password to finish the reset.'
       : 'Enter your admin password to manage booking inquiries & subscribers.';
+    // Focus the first field of the active form (desktop nicety; harmless on
+    // mobile — it is the page's single purpose, so the keyboard is welcome).
+    setTimeout(() => {
+      const f = resetMode ? $('new-password') : $('admin-password');
+      if (f && window.matchMedia('(hover: hover)').matches) f.focus({ preventScroll: true });
+    }, 80);
   }
   function showApp() {
     $('admin-login').style.display = 'none';
@@ -92,6 +112,14 @@
     // A live session token (if any) was restored from sessionStorage by
     // store.js — it is validated on the first API call anyway.
     wireLoginFields();
+    // Cached-copy guard: admin.html carries data-v; if it disagrees with
+    // this script's version the visitor has a stale cache mix — tell them
+    // instead of letting forms silently misbehave.
+    const pageV = document.documentElement.getAttribute('data-v') || '';
+    if (pageV && pageV !== ADMIN_UI_VERSION) {
+      console.warn('[akirma-admin] version mismatch: page=' + pageV + ' js=' + ADMIN_UI_VERSION);
+      loginInfo('This page was loaded from an older cached copy. If anything looks wrong, hold Ctrl (or Cmd) and press R to load the latest version.');
+    }
     if (S.adminSessionActive()) showApp();
     else showLogin();
   }
@@ -105,6 +133,7 @@
     bindPwToggle('new-password2');
     bindCapsHint('admin-password', 'pw-caps');
     bindMeter('new-password', 'pw-meter');
+    bindMatch('new-password', 'new-password2', 'pw-match');
   }
 
   function loginError(msg, opts) {
@@ -185,10 +214,27 @@
     input.addEventListener('input', () => updateMeter(meterId, input.value));
   }
 
+  /** Live "passwords match" hint under the repeat field (reset form). */
+  function bindMatch(aId, bId, hintId) {
+    const a = $(aId), b = $(bId), hint = $(hintId);
+    if (!a || !b || !hint) return;
+    const update = () => {
+      if (!b.value) { hint.hidden = true; hint.textContent = ''; return; }
+      hint.hidden = false;
+      const ok = a.value === b.value;
+      hint.dataset.state = ok ? 'ok' : 'no';
+      hint.textContent = ok ? 'Both passwords match' : 'Passwords don\u2019t match yet';
+    };
+    a.addEventListener('input', update);
+    b.addEventListener('input', update);
+  }
+
   $('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    $('login-error').style.display = 'none';
-    const pw = $('admin-password').value || '';
+    hideLoginBanners();
+    const pwField = $('admin-password');
+    if (!pwField) { loginError('This page is out of date — please refresh (Ctrl+R) and try again.'); return; }
+    const pw = pwField.value || '';
     if (!pw) { loginError('Please enter your admin password.'); return; }
     const btn = $('login-btn');
     btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Verifying…';
@@ -230,8 +276,7 @@
 
   $('forgot-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    $('login-error').style.display = 'none';
-    $('login-info').style.display = 'none';
+    hideLoginBanners();
     const btn = $('forgot-send');
     btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Sending…';
     try {
@@ -253,21 +298,30 @@
 
   $('reset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    $('login-error').style.display = 'none';
-    $('login-info').style.display = 'none';
-    const pw = $('new-password').value || '';
-    const pw2 = $('new-password2').value || '';
+    hideLoginBanners();
+    const pwField = $('new-password'), pw2Field = $('new-password2');
+    if (!pwField || !pw2Field) {
+      loginError('This page is out of date — please refresh (Ctrl+R), then open the reset link from your email again.');
+      return;
+    }
+    const pw = pwField.value || '';
+    const pw2 = pw2Field.value || '';
     if (pw.length < 8) { loginError('Password must be at least 8 characters.'); return; }
     if (pw.length > 128) { loginError('Password must be at most 128 characters.'); return; }
-    if (pw !== pw2) { loginError('The two passwords do not match.'); return; }
+    if (pw !== pw2) { loginError('The two passwords do not match.'); pw2Field.focus(); return; }
+    const token = $('reset-form').dataset.token || '';
+    if (!token) {
+      loginError('This reset link looks incomplete. Please open the link from your email again, or request a new one.');
+      return;
+    }
     const btn = $('reset-btn');
     btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Updating…';
     try {
-      const d = await S.resetPassword($('reset-form').dataset.token || '', pw);
+      const d = await S.resetPassword(token, pw);
       const f = $('reset-form');
       f.style.display = 'none';
       f.dataset.token = '';
-      $('new-password').value = ''; $('new-password2').value = '';
+      pwField.value = ''; pw2Field.value = '';
       updateMeter('pw-meter', '');
       resetMode = false;
       showLogin();
@@ -277,11 +331,13 @@
     } catch (err) {
       const d = (err && err.data) || {};
       if (d.error === 'invalid_token') {
-        loginError('This reset link is invalid, already used, or expired. Request a new one.');
+        loginError('This reset link is invalid, already used, or expired (links last 15 minutes). Request a new one via “Forgot password?”.');
       } else if (d.error === 'bad_password') {
         loginError(d.detail || 'Password must be 8-128 characters.');
+      } else if (d.error === 'bad_request') {
+        loginError('The reset link was not passed correctly — please open the link from your email again.');
       } else {
-        loginError('Reset failed: ' + ((err && err.message) || 'network error'));
+        loginError('Reset failed: ' + ((err && err.message) || 'network error') + '. Check your connection and try again.');
       }
     } finally {
       btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = 'Set new password';

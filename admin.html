@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-v="20260929a">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,8 +10,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#059669" />
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="css/admin.css" />
+  <!-- NOTE: bump ?v= (and data-v above) on EVERY deploy that changes any
+       file referenced here. Browsers long-cache /js/* and /css/* — the
+       version query is what forces a fresh copy after each deploy. -->
+  <link rel="stylesheet" href="css/styles.css?v=20260929a" />
+  <link rel="stylesheet" href="css/admin.css?v=20260929a" />
 </head>
 <body class="admin-body">
 
@@ -27,9 +30,14 @@
       <div class="login-logo">
         <img src="logo.webp" alt="Akirma Events logo" />
       </div>
-      <p class="login-eyebrow">Secure admin access</p>
-      <h1 class="login-title">Akirma Admin</h1>
+      <p class="login-eyebrow" id="login-eyebrow">Secure admin access</p>
+      <h1 class="login-title" id="login-title">Akirma Admin</h1>
       <p class="login-sub" id="login-sub">Sign in to manage inquiries &amp; subscribers.</p>
+
+      <!-- Status banners — pinned to the TOP of the card so they are always
+           visible, whichever form (sign-in / forgot / reset) is on screen. -->
+      <p class="login-error" id="login-error" style="display:none" role="alert"></p>
+      <p class="login-info" id="login-info" style="display:none" role="status"></p>
 
       <!-- Password sign-in (verified server-side by the site API) -->
       <form id="login-form" class="login-form" style="display:none" autocomplete="on">
@@ -88,13 +96,12 @@
               <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
             </button>
           </div>
+          <p class="pw-match" id="pw-match" hidden></p>
         </div>
         <button type="submit" class="btn btn-primary btn-lg login-btn" id="reset-btn">Set new password</button>
         <p class="login-hint">Use at least 8 characters — a mix of letters, numbers and symbols is recommended. You'll sign in with this password from now on.</p>
       </form>
 
-      <p class="login-error" id="login-error" style="display:none"></p>
-      <p class="login-info" id="login-info" style="display:none"></p>
       <a class="login-back" href="index.html">&larr; Back to website</a>
       <p class="login-foot">Protected area &middot; Akirma Events PLC</p>
     </div>
@@ -181,11 +188,11 @@
     <div class="drawer-body" id="drawer-body"></div>
   </aside>
 
-  <script src="js/config.js"></script>
-  <script src="js/data.js"></script>
-<script src="js/site-overrides.js"></script>
-<script src="js/content.js"></script>
-<script src="js/store.js"></script>
-  <script src="js/admin.js"></script>
+  <script src="js/config.js?v=20260929a"></script>
+  <script src="js/data.js?v=20260929a"></script>
+  <script src="js/site-overrides.js?v=20260929a"></script>
+  <script src="js/content.js?v=20260929a"></script>
+  <script src="js/store.js?v=20260929a"></script>
+  <script src="js/admin.js?v=20260929a"></script>
 </body>
 </html>

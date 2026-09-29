@@ -535,6 +535,13 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Force HTTPS — zone-level "Always Use HTTPS" is off, so enforce it here.
+    // Plain-HTTP requests get a permanent redirect to the same https:// URL.
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
+      return Response.redirect(url.toString(), 301);
+    }
+
     // Static site first — the API lives under /api/
     if (!path.startsWith('/api/')) {
       return env.ASSETS.fetch(request);

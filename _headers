@@ -1,12 +1,17 @@
 # Cloudflare Workers static assets — cache rules.
 # HTML pages intentionally keep the default max-age=0 (must-revalidate)
 # so content changes appear immediately after every deploy.
+#
+# JS/CSS: edge-cache but cap BROWSER freshness at 1 h (stale-serve up to a
+# day). admin.html additionally version-references its assets (?v=…) so the
+# admin panel is always fresh — never mix a cached old script with new HTML
+# (that broke the password-reset button once; never again).
 
 /js/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 /css/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 /images/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=86400
