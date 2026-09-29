@@ -1,13 +1,25 @@
-// Cloudflare Workers Builds configuration — Akirma Events PLC (akirmaevents.com)
-// Static-assets-only Worker: serves the files in this repository root as-is.
+// Wrangler configuration — Akirma Events PLC (akirmaevents.com)
+// Deploys via GitHub Actions (push to main) → npx wrangler deploy.
 // The custom domain akirmaevents.com is attached to this Worker in the
 // Cloudflare dashboard and is intentionally NOT managed here, so deploys
 // never touch DNS or domain bindings.
+//
+// worker.js serves the static site + a small booking-inquiry API
+// (POST /api/inquiry) backed by the KV namespace below. Inquiries appear
+// in the admin dashboard at /admin.html.
 {
   "$schema": "https://json.schemastore.org/wrangler.jsonc",
   "name": "akirma",
+  "main": "worker.js",
   "compatibility_date": "2026-09-26",
   "assets": {
-    "directory": "."
-  }
+    "directory": ".",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "INQUIRIES",
+      "id": "1e84a2f8bb124ac184b13303553011c5"
+    }
+  ]
 }

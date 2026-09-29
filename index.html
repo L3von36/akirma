@@ -557,6 +557,8 @@
             <label id="contact-msg-label">Message</label>
             <textarea class="form-input" id="contact-msg-input" rows="4" placeholder="Tell us about your event..."></textarea>
           </div>
+          <!-- Honeypot anti-spam: hidden from humans, bots often fill it -> submission is dropped silently -->
+          <input type="text" id="contact-company" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
           <div class="contact-submit-row">
             <button type="submit" class="btn btn-primary btn-lg" id="contact-submit" style="width:100%;">Send Inquiry</button>
             <button type="button" class="btn btn-whatsapp btn-lg" id="contact-whatsapp-btn" style="width:100%;">

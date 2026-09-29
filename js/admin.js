@@ -71,13 +71,13 @@
     $('login-form-demo').style.display = fbReady ? 'none' : 'flex';
     $('login-sub').textContent = fbReady
       ? 'Sign in with your admin account to manage inquiries & subscribers.'
-      : 'Preview the dashboard with sample data.';
+      : (S.mode === 'server' ? 'Enter your PIN to manage real booking inquiries from the website.' : 'Preview the dashboard with sample data.');
   }
   function showApp() {
     $('admin-login').style.display = 'none';
     $('admin-app').style.display = 'flex';
-    $('mode-chip').textContent = fbReady ? 'LIVE · FIREBASE' : 'DEMO DATA';
-    $('mode-chip').classList.toggle('live', fbReady);
+    $('mode-chip').textContent = fbReady ? 'LIVE · FIREBASE' : (S.mode === 'server' ? 'LIVE · SITE API' : 'DEMO DATA');
+    $('mode-chip').classList.toggle('live', fbReady || S.mode === 'server');
     updateContentBadge();
     refreshData();
   }
@@ -123,6 +123,7 @@
     $('login-error').style.display = 'none';
     const pin = ($('admin-pin').value || '').trim();
     if (pin === String(cfg.ADMIN && cfg.ADMIN.DEMO_PIN || '2519')) {
+      if (S.setAdminPin) S.setAdminPin(pin); // site-API mode: PIN also authenticates server calls
       sessionStorage.setItem('akirma_admin_ok', '1');
       showApp();
     } else {
@@ -437,7 +438,7 @@
           <div class="conn-item">
             <span class="conn-dot ${fbReady ? 'on' : 'off'}"></span>
             <div><div class="t">Firebase (dashboard data)</div>
-            <div class="s">${fbReady ? 'Connected — inquiries & subscribers are stored in Firestore.' : 'Not connected — running in demo mode.'}</div></div>
+            <div class="s">${fbReady ? 'Connected — inquiries & subscribers are stored in Firestore.' : (S.mode === 'server' ? 'Connected — booking inquiries sent from the website are stored securely in your dashboard (site API).' : 'Not connected — running in demo mode.')}</div></div>
           </div>
           <div class="conn-item">
             <span class="conn-dot ${emailJsOn ? 'on' : 'off'}"></span>

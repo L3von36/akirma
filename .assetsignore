@@ -4,3 +4,5 @@
 .gitattributes
 .wrangler
 node_modules
+# Worker source must not be served as a static file (it runs as the Worker script)
+worker.js

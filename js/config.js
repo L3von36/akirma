@@ -76,6 +76,14 @@ window.AKIRMA_CONFIG = {
     '+251 915 895 757',
   ],
 
+  // ── Booking inquiries (site API) ─────────────────────────
+  // When true, "Send Inquiry" on the contact form POSTs the booking to the
+  // site's own API (Cloudflare Worker + KV, see worker.js). Inquiries then
+  // appear in the admin dashboard at /admin.html — no third-party service
+  // needed. The dedicated "Send via WhatsApp" button is unaffected.
+  // Set to false only if you ever move the site off this Worker.
+  SERVER_API: true,
+
   // ── Admin dashboard (/admin.html) ─────────────────────────
   ADMIN: {
     // PIN only guards DEMO mode preview. Real security comes from

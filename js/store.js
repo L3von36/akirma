@@ -26,6 +26,30 @@
     fb.apiKey && !/^YOUR_/.test(fb.apiKey) &&
     fb.projectId && !/^YOUR_/.test(fb.projectId);
 
+  /* ── SITE API mode (Cloudflare Worker + KV, see worker.js) ── */
+  const SERVER = {
+    pin: (function () {
+      try { return sessionStorage.getItem('akirma_admin_pin') || ''; } catch (e) { return ''; }
+    })(),
+    available: !!cfg.SERVER_API,
+  };
+  const useServer = () => !isConfigured() && SERVER.available;
+
+  /** Small fetch wrapper for the site API. Throws on any failure. */
+  async function api(path, opts = {}) {
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    if (SERVER.pin) headers['X-Admin-PIN'] = SERVER.pin;
+    const res = await fetch(path, Object.assign({}, opts, { headers }));
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    if (!res.ok || !data || data.ok !== true) {
+      const err = new Error((data && data.error) || ('HTTP ' + res.status));
+      err.status = res && res.status;
+      throw err;
+    }
+    return data;
+  }
+
   let ready = false;        // firebase loaded & initialized
   let loading = null;       // promise while loading SDK
   let db = null;
@@ -101,11 +125,25 @@
   }
 
   /* ── PUBLIC API ───────────────────────────────────────── */
-  const store = { mode: isConfigured() ? 'firebase' : 'demo', init, isConfigured };
+  const store = {
+    mode: isConfigured() ? 'firebase' : (SERVER.available ? 'server' : 'demo'),
+    init, isConfigured,
+  };
+
+  /** Admin dashboard: remember the PIN for site-API calls (server mode). */
+  store.setAdminPin = function (pin) {
+    SERVER.pin = String(pin || '');
+    try { sessionStorage.setItem('akirma_admin_pin', SERVER.pin); } catch (e) { /* ignore */ }
+  };
 
   /** Fire-and-forget save of a contact-form inquiry. */
   store.saveInquiry = function (data) {
     const rec = Object.assign({ status: 'new', createdAt: Date.now(), source: 'contact_form' }, data);
+    // Preferred path: deliver the inquiry to the admin via the site API (Worker + KV).
+    // Rejects on failure so the contact form can show an honest error message.
+    if (useServer()) {
+      return api('/api/inquiry', { method: 'POST', body: JSON.stringify(rec) });
+    }
     if (!isConfigured()) {
       try {
         const list = demoInquiries() || seedDemo();
@@ -166,6 +204,10 @@
 
   /** Fetch inquiries. Resolves [{id, ...rec}] sorted newest first. */
   store.getInquiries = async function () {
+    if (useServer()) {
+      const d = await api('/api/inquiries');
+      return d.items || [];
+    }
     if (!isConfigured()) {
       return (demoInquiries() || seedDemo()).slice().sort((a, b) => b.createdAt - a.createdAt);
     }
@@ -187,6 +229,10 @@
   };
 
   store.updateInquiry = async function (id, patch) {
+    if (useServer()) {
+      await api('/api/inquiry', { method: 'PATCH', body: JSON.stringify({ id, patch }) });
+      return;
+    }
     if (!isConfigured()) {
       const list = demoInquiries() || seedDemo();
       const i = list.findIndex(x => x.id === id);
@@ -198,6 +244,10 @@
   };
 
   store.deleteInquiry = async function (id) {
+    if (useServer()) {
+      await api('/api/inquiry', { method: 'DELETE', body: JSON.stringify({ id }) });
+      return;
+    }
     if (!isConfigured()) {
       const list = demoInquiries() || seedDemo();
       localStorage.setItem(DEMO_KEY_I, JSON.stringify(list.filter(x => x.id !== id)));

@@ -295,13 +295,12 @@ async function submitContact(e) {
 
   const params = getContactParams();
 
-  // Store the inquiry for the admin dashboard (fire-and-forget — never blocks or fails the form)
-  if (window.AkirmaStore) {
-    Promise.resolve(window.AkirmaStore.saveInquiry(params)).catch(() => {});
-  }
-
   // Path A: EmailJS configured -> send a real email
   if (emailjsReady() && typeof emailjs !== 'undefined') {
+    // Also store the inquiry for the admin dashboard (fire-and-forget)
+    if (window.AkirmaStore) {
+      Promise.resolve(window.AkirmaStore.saveInquiry(params)).catch(() => {});
+    }
     try {
       setFormBusy(true);
       const cfg = window.AKIRMA_CONFIG.EMAILJS;
@@ -320,15 +319,25 @@ async function submitContact(e) {
     return;
   }
 
-  // Path B: not configured -> hand off to WhatsApp so no inquiry is lost
+  // Path B: deliver the booking inquiry to the Akirma admin via the site
+  // API (Cloudflare Worker + KV) — it appears in the admin dashboard at
+  // /admin.html. WhatsApp is intentionally NOT used here; it stays on the
+  // dedicated "Send via WhatsApp" button only.
   setFormBusy(true);
-  await new Promise(r => setTimeout(r, 400));
-  setFormBusy(false);
-  window.open(akirmaWhatsAppLink(buildInquiryText(params)), '_blank', 'noopener');
-  successEl.querySelector('span').textContent = tr.form_sent_whatsapp;
-  successEl.classList.add('show');
-  document.getElementById('contact-form').reset();
-  setTimeout(() => successEl.classList.remove('show'), 8000);
+  try {
+    if (window.AkirmaStore) {
+      await window.AkirmaStore.saveInquiry(params);
+    }
+    successEl.querySelector('span').textContent = tr.form_sent_admin;
+    successEl.classList.add('show');
+    document.getElementById('contact-form').reset();
+    setTimeout(() => successEl.classList.remove('show'), 8000);
+  } catch (err) {
+    console.error('Inquiry delivery failed:', err);
+    if (errorEl) { errorEl.style.display = 'flex'; errorEl.querySelector('span').textContent = tr.form_error; }
+  } finally {
+    setFormBusy(false);
+  }
 }
 
 // "Send via WhatsApp" secondary button
