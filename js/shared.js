@@ -442,7 +442,6 @@ function initGlobalUI() {
   }
   updateScrollProgress();
   updateBackToTop();
-  initSliderFill();
 }
 
 function updateScrollProgress() {
@@ -458,21 +457,6 @@ function updateBackToTop() {
   const btn = document.getElementById('back-to-top');
   if (!btn) return;
   btn.classList.toggle('visible', window.scrollY > 600);
-}
-
-// Visual fill for the estimator range slider (purely presentational)
-function initSliderFill() {
-  const slider = document.getElementById('est-slider');
-  if (!slider) return;
-  const update = () => {
-    const min = parseFloat(slider.min) || 0;
-    const max = parseFloat(slider.max) || 100;
-    const val = parseFloat(slider.value) || 0;
-    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
-    slider.style.setProperty('--fill', pct + '%');
-  };
-  slider.addEventListener('input', update);
-  update();
 }
 
 // Static (non-rendered) text hooks that need translation on language toggle
