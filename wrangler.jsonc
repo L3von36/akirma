@@ -30,8 +30,9 @@
     // akirmaevents24@gmail.com via Email Routing — alerts stay on the gmail
     // directly to keep one hop.
     "NOTIFY_EMAIL": "akirmaevents24@gmail.com",
-    // Sender address — must live on a domain of this Cloudflare account.
-    "NOTIFY_FROM": "notifications@akirmaevents.com"
+    // Sender address for booking alerts — on this zone (Email Routing enabled),
+    // so customer replies to alerts forward back to the gmail inbox too.
+    "NOTIFY_FROM": "info@akirmaevents.com"
   },
   "send_email": [
     { "name": "SEND_EMAIL" }

@@ -221,7 +221,7 @@ function buildInquiryAlertEmail(rec, from, to) {
   const subject = 'New booking inquiry — ' + (rec.name || 'unnamed') +
     (rec.event_type ? ' (' + rec.event_type + ')' : '');
   const lines = [
-    'A new booking inquiry was just submitted through akdirmaevents.com.',
+    'A new booking inquiry was just submitted through akirmaevents.com.',
     '',
     '----------------------------------------',
     'Name:        ' + (rec.name || '-'),
@@ -243,6 +243,8 @@ function buildInquiryAlertEmail(rec, from, to) {
     subject,
     raw: [
       'From: Akirma Events Website <' + from + '>',
+      // Replies go straight to the customer, not back to the website mailbox
+      ...(rec.email ? ['Reply-To: ' + rec.email] : []),
       'To: <' + to + '>',
       'Subject: ' + headerSafe(subject),
       'MIME-Version: 1.0',
@@ -283,7 +285,7 @@ function buildTestAlertEmail(from, to) {
     'This is a test alert from your website booking system.',
     '',
     'If you can read this, email alerts are working: every new booking',
-    'inquiry submitted on akdirmaevents.com will now arrive in this inbox.',
+    'inquiry submitted on akirmaevents.com will now arrive in this inbox.',
     '',
     'Sent: ' + new Date().toISOString(),
   ];
@@ -532,7 +534,7 @@ export default {
 
       if (request.method === 'POST' && path === '/api/notify-test') {
         if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
-        if (!env.SEND_EMAIL) return json({ ok: false, error: 'email_binding_missing', detail: 'The SEND_EMAIL binding is not deployed yet. Enable Email Routing for akdirmaevents.com in the Cloudflare dashboard (Email → Email Routing), then redeploy.' });
+        if (!env.SEND_EMAIL) return json({ ok: false, error: 'email_binding_missing', detail: 'The SEND_EMAIL binding is not deployed yet. Enable Email Routing for akirmaevents.com in the Cloudflare dashboard (Email → Email Routing), then redeploy.' });
         if (!env.NOTIFY_EMAIL) return json({ ok: false, error: 'notify_email_not_configured', detail: 'NOTIFY_EMAIL is not set in wrangler.jsonc.' });
         const r = await sendAlert(env, buildTestAlertEmail(env.NOTIFY_FROM || ALERT_FROM_FALLBACK, env.NOTIFY_EMAIL));
         if (r.ok) return json({ ok: true, to: r.to, detail: 'Test alert sent — check the inbox (allow a minute, and check spam).' });
