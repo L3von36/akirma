@@ -72,7 +72,7 @@
   /* Must match the data-v attribute on <html> in admin.html. When they
    * differ, the visitor is running a cached JS/HTML mix — we warn instead
    * of silently misbehaving (the 2026-09 stale-cache reset-button bug). */
-  const ADMIN_UI_VERSION = '20260930a';
+  const ADMIN_UI_VERSION = '20260930b';
 
   function hideLoginBanners() {
     $('login-error').style.display = 'none';
@@ -848,6 +848,52 @@
   /** Tabs whose label carries a live item count (deleted items excluded). */
   const COUNTED_TABS = { services: 'services', events: 'events', blog: 'blog', testimonials: 'testimonials', faq: 'faqs' };
 
+  /* ── content-section dropdown (replaces the old subtab row) ── */
+  const C_ICONS = {
+    hero: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z',
+    sections: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
+    services: 'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0',
+    events: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
+    blog: 'M16.862 4.487 18.549 2.8a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10',
+    testimonials: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z',
+    faq: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z',
+    identity: 'M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5',
+    why: 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z',
+    contact: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z',
+    seo: 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z',
+    aeo: 'M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418',
+  };
+  function cIcon(id, cls) {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="${cls || 'cnav-ic'}" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${C_ICONS[id] || C_ICONS.sections}"/></svg>`;
+  }
+  /** Section label with live count, e.g. "Events (17)". */
+  function tabLabel(id) {
+    const base = (C_TABS.find(t => t[0] === id) || ['', id])[1];
+    return COUNTED_TABS[id] ? base + ' (' + liveIds(COUNTED_TABS[id]).length + ')' : base;
+  }
+  const CNAV_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="cnav-chev" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>';
+  const CNAV_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="cnav-check" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>';
+  function cnavHtml() {
+    const cur = state.contentTab || 'hero';
+    return `<div class="cnav" id="c-nav">
+      <button type="button" class="cnav-btn" id="cnav-btn" aria-haspopup="listbox" aria-expanded="false" title="Choose a content section">
+        ${cIcon(cur)}<span class="cnav-cur">${esc(tabLabel(cur))}</span>${CNAV_CHEV}
+      </button>
+      <div class="cnav-pop" role="listbox" aria-label="Content sections">
+        ${C_TABS.map(([id, label]) => `<button type="button" class="cnav-item${id === cur ? ' active' : ''}" role="option" aria-selected="${id === cur}" data-tab="${id}">${cIcon(id, 'cnav-ic cnav-item-ic')}<span class="cnav-lbl">${esc(label)}</span>${COUNTED_TABS[id] ? `<span class="cnav-count">${liveIds(COUNTED_TABS[id]).length}</span>` : ''}${id === cur ? CNAV_CHECK : ''}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+  /** Close any open section dropdown when clicking outside it (single doc-level listener). */
+  function adminDocCloseCnav(e) {
+    const n = document.querySelector('.cnav.open');
+    if (n && !n.contains(e.target)) {
+      n.classList.remove('open');
+      const b = n.querySelector('.cnav-btn');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   function getPath(obj, path) {
     return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
   }
@@ -904,10 +950,14 @@
     const fe = opts.features ? ' data-features="1"' : '';
     const type = opts.date ? 'date' : (opts.num ? 'number' : 'text');
     const numAttr = opts.num ? ' min="1" step="1"' : '';
+    const dlId = 'dl-' + path.replace(/[^a-zA-Z0-9]+/g, '-');
+    const dlAttr = opts.datalist ? ` list="${dlId}"` : '';
+    const dl = opts.datalist ? `<datalist id="${dlId}">${opts.datalist.map(o => `<option value="${esc(o)}"></option>`).join('')}</datalist>` : '';
+    const hint = opts.hint ? `<small class="chint">${esc(opts.hint)}</small>` : '';
     const fld = opts.area
-      ? `<textarea class="form-input cin" data-bind="${path}"${fe} rows="${opts.rows || 3}">${esc(val)}</textarea>`
-      : `<input class="form-input cin" type="${type}"${numAttr} data-bind="${path}"${fe} value="${esc(val)}" />`;
-    return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}${cnt}</span>${fld}</label>`;
+      ? `<textarea class="form-input cin" data-bind="${path}"${fe} rows="${opts.rows || 3}">${esc(val)}</textarea>${dl}`
+      : `<input class="form-input cin" type="${type}"${numAttr}${dlAttr} data-bind="${path}"${fe} value="${esc(val)}" />${dl}`;
+    return `<label class="cfield"><span class="clabel">${esc(label)} ${chip}${cnt}</span>${fld}${hint}</label>`;
   }
   /** Bilingual pair. tpl uses {L} → en/am (nested T fields). */
   function cBi(label, tpl, opts) {
@@ -1025,6 +1075,29 @@
       ${delNote('services', del)}`;
   }
 
+  /* ── EVENTS tab — pro-max card: grouped sections, category suggestions,
+     year picker, featured switch, danger zone ── */
+  const EVENT_CATS_EN = ['Wedding', 'Corporate', 'Government', 'Decoration', 'Social', 'Concert'];
+  const EVENT_CATS_AM = ['ሰርግ', 'ኮርፖሬት', 'መንግስታዊ', 'ዲኮር', 'ማህበራዊ', 'ኮንሰርት'];
+  /** Year <select> (2015 → next year; keeps any existing out-of-range value). */
+  function cYear(label, path) {
+    const raw = getPath(state.content, path);
+    const v = raw == null ? '' : String(raw);
+    const now = new Date().getFullYear();
+    const years = [];
+    for (let y = now + 1; y >= 2015; y--) years.push(String(y));
+    if (v && years.indexOf(v) === -1) years.unshift(v);
+    return `<label class="cfield cyear"><span class="clabel">${esc(label)}</span><select class="form-input cin" data-bind="${path}">${years.map(y => `<option value="${y}"${y === v ? ' selected' : ''}>${y}</option>`).join('')}</select></label>`;
+  }
+  /** Featured toggle rendered as a switch (input stays a real checkbox). */
+  function cFeat(path, checked) {
+    return `<label class="feat-check feat-switch"><input type="checkbox" data-fet="${esc(path)}"${checked ? ' checked' : ''} /><span class="sw-track" aria-hidden="true"><span class="sw-dot"></span></span><span class="sw-txt">Show in &ldquo;Featured Events&rdquo; on the landing page</span></label>`;
+  }
+  function evThumb(path) {
+    const v = getPath(state.content, path) || '';
+    return `<span class="ev-thumb"><img src="${esc(v)}" alt="" ${v ? '' : 'style="display:none"'} onerror="this.style.display='none'"></span>`;
+  }
+
   function tabEvents() {
     const defaultsEv = (C.defaults() || {}).events || {};
     const ids = liveIds('events').sort((a, b) => Number(a) - Number(b));
@@ -1032,19 +1105,43 @@
     const cards = ids.map(id => {
       const e = state.content.events[id];
       const isNew = !defaultsEv[id];
-      return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}${isNew ? ' <em class="lang-chip en">new</em>' : ''}${e.featured ? ' <em class="lang-chip am">featured</em>' : ''}`, `
-        ${cImage('Photo', 'events.' + id + '.image')}
-        ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
-        ${cBiFlat('Category (site filters: Wedding, Corporate, Government, Decoration)', 'events.' + id, 'category', 'categoryAm')}
-        ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
-        ${cField('Year', 'events.' + id + '.year')}
-        <label class="feat-check"><input type="checkbox" data-fet="events.${esc(id)}.featured" ${e.featured ? 'checked' : ''} /> Show in &ldquo;Featured Events&rdquo; on the landing page</label>
-        <div class="post-actions"><button class="mini-btn danger" data-del="events.${esc(id)}">Delete this event</button></div>
-      `, false, `data-item="events-${esc(id)}"`);
+      const imgPath = 'events.' + id + '.image';
+      const meta = [e.category, e.location, e.year].filter(Boolean).map(x => String(x)).join(' · ');
+      const summary = `<span class="ev-sum">${evThumb(imgPath)}<span class="ev-sum-txt"><strong class="ev-sum-t">${esc(e.title || '(untitled event)')}</strong><small class="ev-sum-m">${esc(meta)}</small></span>${isNew ? ' <em class="lang-chip en">new</em>' : ''}${e.featured ? ' <em class="lang-chip am">featured</em>' : ''}</span>`;
+      const body = `
+        <div class="egroup">
+          <h5 class="egroup-t">Photo</h5>
+          ${cImage('Photo', imgPath)}
+        </div>
+        <div class="egroup">
+          <h5 class="egroup-t">Event details</h5>
+          <div class="egrid">
+            ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
+            <div class="cfield-bi">
+              ${cField('Category', 'events.' + id + '.category', { lang: 'en', datalist: EVENT_CATS_EN })}
+              ${cField('Category', 'events.' + id + '.categoryAm', { lang: 'am', datalist: EVENT_CATS_AM })}
+            </div>
+            <p class="chint eg-hint">Site filters: Wedding, Corporate, Government, Decoration — other categories still appear under &ldquo;All&rdquo;.</p>
+            ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
+            <div class="eyear-row">
+              ${cYear('Year', 'events.' + id + '.year')}
+              ${cFeat('events.' + esc(id) + '.featured', !!e.featured)}
+            </div>
+          </div>
+        </div>
+        <div class="egroup eg-danger">
+          <h5 class="egroup-t">Danger zone</h5>
+          <div class="eg-danger-row">
+            <button class="mini-btn danger" data-del="events.${esc(id)}">Delete this event</button>
+            <p class="content-hint" style="margin:0">Removes it from the site after you press Save &amp; Preview &mdash; undoable until then.</p>
+          </div>
+        </div>
+      `;
+      return itemCard(summary, body, false, `data-item="events-${esc(id)}"`);
     }).join('');
     return `
       <div class="blog-toolbar">
-        <p class="content-hint" style="margin:0">Every event appears in the Gallery; tick &ldquo;featured&rdquo; to also show it on the landing page. Categories outside the four built-in filters still show under &ldquo;All&rdquo;. New events start with a placeholder photo — upload one per card.</p>
+        <p class="content-hint" style="margin:0">Every event appears in the Gallery; switch on &ldquo;featured&rdquo; to also show it on the landing page. Categories outside the four built-in filters still show under &ldquo;All&rdquo;. New events start with a placeholder photo — upload one per card.</p>
         <button class="mini-btn primary" id="ev-add">+ Add new event</button>
       </div>
       <div class="content-cards">${cards || '<p class="content-hint">No events here — add one above, or press &ldquo;Reset to defaults&rdquo; to restore the originals.</p>'}</div>
@@ -1482,12 +1579,7 @@
         </details>
       </div>
 
-      <div class="subtabs" id="c-subtabs">
-        ${C_TABS.map(([id, label]) => {
-          const lbl = COUNTED_TABS[id] ? label + ' (' + liveIds(COUNTED_TABS[id]).length + ')' : label;
-          return `<button class="subtab ${state.contentTab === id ? 'active' : ''}" data-tab="${id}">${esc(lbl)}</button>`;
-        }).join('')}
-      </div>
+      ${cnavHtml()}
 
       <div class="panel content-panel">
         ${(C_TAB_RENDER[state.contentTab] || tabHero)()}
@@ -1502,11 +1594,28 @@
         </div>
       </div>`;
 
-    // sub-tab switching
-    c.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
-      state.contentTab = b.dataset.tab;
-      render();
-    }));
+    // section dropdown: toggle, choose, close on outside click / Escape
+    const cnav = $('c-nav'), cnavBtn = $('cnav-btn');
+    if (cnav && cnavBtn) {
+      cnavBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const open = cnav.classList.toggle('open');
+        cnavBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      c.querySelectorAll('.cnav-item').forEach(b => b.addEventListener('click', () => {
+        state.contentTab = b.dataset.tab;
+        render();
+      }));
+      document.removeEventListener('click', adminDocCloseCnav);
+      document.addEventListener('click', adminDocCloseCnav);
+      cnav.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && cnav.classList.contains('open')) {
+          cnav.classList.remove('open');
+          cnavBtn.setAttribute('aria-expanded', 'false');
+          cnavBtn.focus();
+        }
+      });
+    }
 
     // two-way binding
     c.querySelectorAll('[data-bind]').forEach(el => {
