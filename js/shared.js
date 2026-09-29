@@ -107,7 +107,7 @@ function akirmaNewsletterSubmit() {
     // Fallback: open the visitor's mail app addressed to the company inbox
     const subject = encodeURIComponent('Newsletter Subscription - Akirma Events');
     const body = encodeURIComponent(`Hello Akirma Events,\n\nPlease subscribe me to your newsletter.\n\nEmail: ${email}`);
-    window.location.href = `mailto:${cfg.EMAIL_TO || 'info@akirma.com'}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${cfg.EMAIL_TO || 'info@akirmaevents.com'}?subject=${subject}&body=${body}`;
     showToast(tr.newsletter_mailto);
     input.value = '';
   }

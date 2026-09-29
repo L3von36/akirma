@@ -6,7 +6,7 @@
  *
  *  ── HOW TO ACTIVATE REAL EMAIL SENDING (EmailJS — free plan) ──
  *  1. Create a free account at https://www.emailjs.com
- *  2. "Email Services" → connect the company mailbox (e.g. info@akirma.com)
+ *  2. "Email Services" → connect the company mailbox (e.g. info@akirmaevents.com)
  *     → copy the **Service ID**
  *  3. "Email Templates" → create a CONTACT template that uses these
  *     variables:  {{from_name}} {{from_email}} {{phone}} {{event_type}}
@@ -51,7 +51,8 @@ window.AKIRMA_CONFIG = {
   // ── Direct channels (used for fallbacks & quick buttons) ─
   WHATSAPP_NUMBER: '251915843131',              // digits only — no "+", spaces or dashes
   TELEGRAM_URL:    'https://t.me/akirmaeventsplc',
-  EMAIL_TO:        'info@akirma.com',           // company inbox for mailto fallbacks
+  EMAIL_TO:        'info@akirmaevents.com',     // company inbox for mailto fallbacks
+                                                // (forwards to akirmaevents24@gmail.com via Cloudflare Email Routing)
 
   // ── Company phone numbers (shown on the site, tap-to-call) ─
   PHONES: [

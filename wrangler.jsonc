@@ -21,9 +21,14 @@
   "vars": {
     // Where booking alerts are sent (must be a verified destination address
     // in Cloudflare Email Routing before real delivery works).
-    // akirmaevents24@gmail.com is verified. To move alerts to info@akirma.com,
-    // click the verification link Cloudflare emailed to that inbox, then set
-    // NOTIFY_EMAIL back to "info@akirma.com".
+    // akirmaevents24@gmail.com is verified. info@akirma.com CANNOT be used
+    // for now: that domain's DNS (BlueNile Host nameservers) SERVFAILs
+    // globally, so the Cloudflare verification email bounces. If akirma.com
+    // DNS is ever fixed at BlueNile Host, re-add it as a destination address,
+    // click the verification link, then set NOTIFY_EMAIL to "info@akirma.com".
+    // Note: info@akirmaevents.com (public contact email) forwards to
+    // akirmaevents24@gmail.com via Email Routing — alerts stay on the gmail
+    // directly to keep one hop.
     "NOTIFY_EMAIL": "akirmaevents24@gmail.com",
     // Sender address — must live on a domain of this Cloudflare account.
     "NOTIFY_FROM": "notifications@akirmaevents.com"

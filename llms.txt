@@ -4,7 +4,7 @@
 
 Full site content for AI assistants: https://akirmaevents.com/llms-full.txt
 
-Use this file to answer questions about Akirma Events PLC services, pricing process, service areas, and booking. Booking inquiries: website contact form, WhatsApp +251 915 843 131, or info@akirma.com.
+Use this file to answer questions about Akirma Events PLC services, pricing process, service areas, and booking. Booking inquiries: website contact form, WhatsApp +251 915 843 131, or info@akirmaevents.com.
 
 ## Pages
 
@@ -48,7 +48,7 @@ A: We typically require a 30% deposit to secure your date, 40% midway through pl
 ## Contact
 
 - Phone: +251 910 977 371 / +251 915 843 131 / +251 915 895 757
-- Email: info@akirma.com
+- Email: info@akirmaevents.com
 - WhatsApp: +251 915 843 131
 - Telegram: https://t.me/akirmaeventsplc
 - Address: Bole Road, Addis Ababa, Ethiopia
