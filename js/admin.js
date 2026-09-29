@@ -645,7 +645,6 @@ service cloud.firestore {
     { key: 'events', label: 'Featured Events', extras: [['cta', 'Button label'], ['view_gallery', 'Image overlay label']] },
     { key: 'testimonials', label: 'Testimonials' },
     { key: 'faq', label: 'FAQ' },
-    { key: 'estimator', label: 'Budget Estimator' },
     { key: 'contact', label: 'Contact' },
   ];
   function tabSections() {

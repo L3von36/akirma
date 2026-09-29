@@ -8,8 +8,6 @@
 // ── STATE ───────────────────────────────────────────
 let modalOpen = false;
 let modalIndex = 0;
-let estimatorGuests = 100;
-let estimatorLevel = 1;
 let faqOpenIndex = 0;
 
 const galleryImages = ALL_EVENTS.map(e => e.image);
@@ -30,7 +28,6 @@ function renderAll() {
   renderWhyChooseUs();
   renderTestimonials();
   renderFAQ();
-  renderBudgetEstimator();
   renderContact();
   renderGallery();
 }
@@ -173,71 +170,6 @@ function toggleFaq(i) {
     el.querySelector('.faq-question').setAttribute('aria-expanded', idx === faqOpenIndex);
   });
 }
-
-// ── BUDGET ESTIMATOR ──────────────────────────────────────────
-function renderBudgetEstimator() {
-  const tr = t();
-  document.getElementById('est-title').textContent = tr.estimator.title;
-  document.getElementById('est-desc').textContent = tr.estimator.description;
-  document.getElementById('est-guests-label').textContent = tr.estimator.labels.guests;
-  document.getElementById('est-level-label').textContent = tr.estimator.labels.service_level;
-  document.getElementById('est-total-label').textContent = tr.estimator.labels.total;
-  document.getElementById('est-range-label').textContent = tr.estimator.labels.range;
-  document.getElementById('est-disclaimer').textContent = tr.estimator.labels.disclaimer;
-  document.getElementById('est-book-btn').textContent = tr.nav.book;
-
-  const levelData = [
-    { icon: ICONS.Shield },
-    { icon: ICONS.Sparkles },
-    { icon: ICONS.Award },
-  ];
-  document.getElementById('levels-grid').innerHTML = tr.estimator.levels.map((name, i) => `
-    <button class="level-btn${i === estimatorLevel ? ' active' : ''}" onclick="setLevel(${i})">
-      ${levelData[i].icon}
-      <h4>${name}</h4>
-      <p>${tr.estimator.level_desc[i]}</p>
-    </button>
-  `).join('');
-
-  document.getElementById('est-slider').value = estimatorGuests;
-  document.getElementById('est-guest-count').textContent = estimatorGuests;
-  updateEstimate();
-}
-
-function setLevel(i) {
-  estimatorLevel = i;
-  document.querySelectorAll('.level-btn').forEach((el, idx) => el.classList.toggle('active', idx === i));
-  updateEstimate();
-}
-
-function updateEstimate() {
-  const baseRates = [800, 1500, 3000];
-  const base = baseRates[estimatorLevel];
-  const total = estimatorGuests * base;
-  const min = Math.round(total * 0.9);
-  const max = Math.round(total * 1.15);
-  document.getElementById('est-total').textContent = total.toLocaleString();
-  document.getElementById('est-range').textContent = `${min.toLocaleString()} - ${max.toLocaleString()}`;
-  estimatorRange = { min, max };
-}
-
-// ── ESTIMATOR -> CONTACT FORM PREFILL ────────────
-function quoteFromEstimator() {
-  const tr = t();
-  const levels = tr.estimator.levels;
-  const min = estimatorRange.min.toLocaleString();
-  const max = estimatorRange.max.toLocaleString();
-  const msg = lang === 'am'
-    ? `ሰላም! የዋጋ ግምት ማስያዎን ተጠቅሜ ጥያቄ ማቅረብ እፈልጋለሁ።
-የእንግዶች ብዛት: ${estimatorGuests}
-የአገልግሎት ደረጃ: ${levels[estimatorLevel]}
-ግምታዊ ዋጋ: ETB ${min} - ${max}`
-    : `Hello! I'd like a quote based on your Budget Estimator.\nNumber of guests: ${estimatorGuests}\nService level: ${levels[estimatorLevel]}\nEstimated range: ETB ${min} - ${max}`;
-  const msgInput = document.getElementById('contact-msg-input');
-  if (msgInput) msgInput.value = msg;
-}
-
-let estimatorRange = { min: 0, max: 0 };
 
 // ── CONTACT HELPERS ──────────────────────────────
 function emailjsReady() {
@@ -505,12 +437,6 @@ function syncThumb() {
 
 // ── EVENTS ──────────────────────────────────────────
 function bindEvents() {
-  // Estimator slider
-  document.getElementById('est-slider').addEventListener('input', (e) => {
-    estimatorGuests = parseInt(e.target.value);
-    document.getElementById('est-guest-count').textContent = estimatorGuests;
-    updateEstimate();
-  });
 
   // Contact form
   document.getElementById('contact-form').addEventListener('submit', submitContact);
@@ -619,7 +545,6 @@ function initScrollReveal() {
     '#featured-events .event-card',
     '#testimonials .testi-card',
     '#faq .faq-box',
-    '#budget-estimator .estimator-wrap',
     '#contact .contact-item',
     '#contact .contact-form-box',
   ];

@@ -4,7 +4,7 @@
 
 ## Main pages
 
-- [Home](https://akirmaevents.com/): overview, 12 services, featured events, testimonials, FAQ and an instant budget estimator
+- [Home](https://akirmaevents.com/): overview, 12 services, featured events, testimonials, FAQ and an instant booking inquiry form
 - [Services](https://akirmaevents.com/services.html): all 12 services with full details
 - [Gallery](https://akirmaevents.com/gallery.html): photo portfolio of delivered events
 - [About](https://akirmaevents.com/about.html): company story, vision, mission and values
