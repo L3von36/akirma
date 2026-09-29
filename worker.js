@@ -7,10 +7,15 @@
  *    POST   /api/inquiry        visitors submit the contact/booking form
  *    POST   /api/subscriber     visitors join the newsletter
  *    GET    /api/health         uptime check
- *    POST   /api/admin/login    admin: exchange PIN for a session token
- *    POST   /api/admin/logout   admin: invalidate the current session
- *    POST   /api/admin/forgot-pin  email a single-use reset link to the owner
- *    POST   /api/admin/reset-pin   exchange reset token for a new PIN
+ *    POST   /api/admin/login             admin: exchange password for a session token
+ *    POST   /api/admin/logout            admin: invalidate the current session
+ *    POST   /api/admin/forgot-password   email a single-use reset link to the owner
+ *    POST   /api/admin/reset-password    exchange reset token for a new password
+ *    POST   /api/admin/change-password   admin: change password (Bearer token)
+ *
+ *    Legacy aliases (same behavior, kept so old links/clients never 404):
+ *    POST   /api/admin/forgot-pin  =  forgot-password
+ *    POST   /api/admin/reset-pin   =  reset-password
  *    GET    /api/inquiries      admin: list inquiries     (Bearer token)
  *    PATCH  /api/inquiry        admin: update status      (Bearer token)
  *    DELETE /api/inquiry        admin: delete one         (Bearer token)
@@ -34,10 +39,19 @@
  *  dashboard shows an explicit error instead of sample records.
  *
  *  SECURITY MODEL (no secrets in the client bundle):
- *  - The PIN lives ONLY in the worker secret ADMIN_PIN
- *      npx wrangler secret put ADMIN_PIN
- *  - POST /api/admin/login validates it server-side (constant-time
- *    compare) with per-IP brute-force lockout (5 fails → 15 min).
+ *  - The admin password lives ONLY server-side, as a PBKDF2-SHA256 hash
+ *    in KV under `admin:pass` (format: pbkdf2-sha256$<iter>$<salt>$<hash>).
+ *    It is set via the emailed reset link, or from the dashboard's
+ *    Settings → Security card (POST /api/admin/change-password).
+ *  - Legacy credentials are still honored for a seamless migration and
+ *    are auto-upgraded to a PBKDF2 hash on first successful use:
+ *      · the old ADMIN_PIN worker secret (npx wrangler secret put ADMIN_PIN)
+ *      · the old self-service-reset PIN hash in KV `admin:pin` (SHA-256)
+ *  - POST /api/admin/login validates server-side (constant-time compare)
+ *    with per-IP brute-force lockout (5 fails → 15 min, Durable Object).
+ *  - PBKDF2 iterations (25k) are deliberately modest because Workers free
+ *    plan caps request CPU at ~10 ms; the DO lockout is the primary
+ *    brute-force defense and the KV-stored hash never leaves the server.
  *  - Success returns a random session token stored in KV with an 8h
  *    TTL (sliding). Admin endpoints require `Authorization: Bearer`.
  * ═══════════════════════════════════════════════════════════════
@@ -50,14 +64,18 @@ const PREFIX = 'inq:';      // keys look like: inq:<reverse-timestamp>:<id> → 
 const SUB_PREFIX = 'sub:';   // newsletter subscribers: sub:<reverse-timestamp>:<id>
 const SESS_PREFIX = 'sess:'; // admin sessions: sess:<token>
 const SESSION_TTL = 8 * 3600;      // 8 hours (seconds)
-const LOGIN_MAX_FAILS = 5;         // failed PIN attempts before lockout
+const LOGIN_MAX_FAILS = 5;         // failed sign-in attempts before lockout
 const LOGIN_LOCKOUT = 15 * 60;     // lockout duration (seconds)
 const ALERT_FROM_FALLBACK = 'notifications@akirmaevents.com';
 
-const RESET_PREFIX = 'pwreset:';   // PIN reset tokens: pwreset:<token> → {ip, ts}
+const RESET_PREFIX = 'pwreset:';   // password reset tokens: pwreset:<token> → {ip, ts}
 const RESET_TTL = 15 * 60;         // reset link validity (seconds)
-const PIN_HASH_KEY = 'admin:pin';  // KV-stored SHA-256 hex of a self-service-reset PIN
-const FORGOT_COOLDOWN = 5 * 60;    // min seconds between forgot-pin emails per IP
+const PIN_HASH_KEY = 'admin:pin';  // LEGACY: KV-stored SHA-256 hex of a self-service-reset PIN
+const PASS_HASH_KEY = 'admin:pass';// KV-stored PBKDF2 record of the admin password
+const FORGOT_COOLDOWN = 5 * 60;    // min seconds between forgot-password emails per IP
+const PBKDF2_ITERATIONS = 25000;   // see SECURITY MODEL note on the Workers CPU budget
+const PASSWORD_MIN = 8;            // minimum password length
+const PASSWORD_MAX = 128;          // maximum password length
 
 /**
  * Login brute-force guard — one Durable Object instance per client IP.
@@ -149,10 +167,88 @@ function timingSafeEq(a, b) {
   return diff === 0;
 }
 
-/** SHA-256 of a string as lowercase hex (stores the reset PIN, never plaintext). */
+/** SHA-256 of a string as lowercase hex (legacy PIN storage, never plaintext). */
 async function sha256Hex(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ── Password hashing (PBKDF2-SHA256, stored record format below) ──
+ * Stored record: `pbkdf2-sha256$<iterations>$<saltBase64>$<hashHex>`
+ * The iteration count travels with the record so it can be raised later
+ * without invalidating existing passwords. */
+function b64encode(bytes) {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+function b64decode(s) {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function pbkdf2Hex(password, saltBytes, iterations) {
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(String(password)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations }, key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Hash a password into the storable KV record. */
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hex = await pbkdf2Hex(password, salt, PBKDF2_ITERATIONS);
+  return 'pbkdf2-sha256$' + PBKDF2_ITERATIONS + '$' + b64encode(salt) + '$' + hex;
+}
+
+/** Verify a password against a stored record. Returns false on any
+ *  malformed record (never throws). Constant-time final compare. */
+async function verifyPassword(password, stored) {
+  const parts = String(stored || '').split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2-sha256') return false;
+  const iter = parseInt(parts[1], 10);
+  if (!Number.isInteger(iter) || iter < 1000 || iter > 2000000) return false;
+  let salt;
+  try { salt = b64decode(parts[2]); } catch (e) { return false; }
+  const hex = await pbkdf2Hex(password, salt, iter);
+  return timingSafeEq(hex, parts[3]);
+}
+
+/** Server-side password policy for set/change/reset. */
+function passwordValid(pw) {
+  return typeof pw === 'string' && pw.length >= PASSWORD_MIN && pw.length <= PASSWORD_MAX;
+}
+
+/**
+ * Verify admin credentials against every supported store, oldest first:
+ *   1. legacy self-service-reset PIN (KV admin:pin, SHA-256)
+ *   2. legacy ADMIN_PIN worker secret
+ *   3. current password (KV admin:pass, PBKDF2)
+ * Returns the matched kind, or null. When a LEGACY credential matches and
+ * no PBKDF2 password exists yet, it is transparently upgraded: the same
+ * secret is re-hashed with PBKDF2 into admin:pass and the weak legacy
+ * record is deleted — the owner keeps signing in with the same value.
+ */
+async function verifyAdminCredential(env, secret) {
+  const kv = env.INQUIRIES;
+  const passRec = kv ? await kv.get(PASS_HASH_KEY) : null;
+  const pinHash = kv ? await kv.get(PIN_HASH_KEY) : null;
+
+  let kind = null;
+  if (pinHash && timingSafeEq(await sha256Hex(secret), pinHash)) kind = 'pin-kv';
+  else if (env.ADMIN_PIN && timingSafeEq(secret, env.ADMIN_PIN)) kind = 'pin-secret';
+  else if (passRec && (await verifyPassword(secret, passRec))) kind = 'password';
+  if (!kind) return null;
+
+  // Transparent legacy → PBKDF2 upgrade (one-time).
+  if (kind !== 'password' && kv && !passRec) {
+    await kv.put(PASS_HASH_KEY, await hashPassword(secret));
+    if (pinHash) await kv.delete(PIN_HASH_KEY);
+  }
+  return kind;
 }
 
 /**
@@ -332,14 +428,14 @@ function buildTestAlertEmail(from, to) {
 }
 
 function buildResetEmail(from, link, ip) {
-  const subject = 'Reset your admin PIN — Akirma Events';
+  const subject = 'Reset your admin password — Akirma Events';
   const lines = [
     'Hello,',
     '',
-    'Someone (hopefully you) asked to reset the admin PIN for',
+    'Someone (hopefully you) asked to reset the admin password for',
     'https://akirmaevents.com/admin.html.',
     '',
-    'Open this link to choose a new PIN (works once, expires in 15 minutes):',
+    'Open this link to choose a new password (works once, expires in 15 minutes):',
     '',
     link,
     '',
@@ -347,7 +443,7 @@ function buildResetEmail(from, link, ip) {
     '- Time: ' + new Date().toISOString(),
     '- IP:   ' + ip,
     '',
-    'If you did not request this, ignore this email — your current PIN',
+    'If you did not request this, ignore this email — your current password',
     'keeps working and nothing has changed.',
     '',
     '— Akirma Events website (automated message)',
@@ -360,7 +456,7 @@ function buildResetEmail(from, link, ip) {
       'MIME-Version: 1.0',
       'Content-Type: text/plain; charset=utf-8',
       'Content-Transfer-Encoding: 8bit',
-      'X-Website-Auto-Alert: pin-reset',
+      'X-Website-Auto-Alert: password-reset',
       '',
       lines.join('\r\n'),
     ].join('\r\n'),
@@ -504,29 +600,29 @@ export default {
         return json({ ok: true, id: rec.id });
       }
 
-      // ── admin auth (server-side PIN → session token) ────
+      // ── admin auth (server-side password → session token) ────
       if (request.method === 'POST' && path === '/api/admin/login') {
         const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
         const lockSecs = await loginLocked(env, ip);
         if (lockSecs) return json({ ok: false, error: 'rate_limited', retry_after: lockSecs }, 429,
           { 'Retry-After': String(lockSecs) });
 
-        // The PIN matches either the deployed ADMIN_PIN secret or a
-        // self-service reset stored as a SHA-256 hash in KV (admin:pin).
-        const kvHash = env.INQUIRIES ? await env.INQUIRIES.get(PIN_HASH_KEY) : null;
-        if (!env.ADMIN_PIN && !kvHash) {
-          return json({ ok: false, error: 'pin_not_configured' }, 503);
+        const body = await readJson(request, 2048);
+        // `password` is the field name; the legacy `pin` name is accepted
+        // so an old cached client can still sign in during propagation.
+        const secret = body && typeof body.password === 'string' ? body.password
+          : body && typeof body.pin === 'string' ? body.pin : null;
+        if (!body || secret === null) return json({ ok: false, error: 'bad_request' }, 400);
+
+        const passRec = env.INQUIRIES ? await env.INQUIRIES.get(PASS_HASH_KEY) : null;
+        if (!passRec && !env.ADMIN_PIN) {
+          return json({ ok: false, error: 'password_not_configured' }, 503);
         }
 
-        const body = await readJson(request, 1024);
-        if (!body || typeof body.pin !== 'string') return json({ ok: false, error: 'bad_request' }, 400);
-
-        let pinOk = false;
-        if (env.ADMIN_PIN) pinOk = timingSafeEq(body.pin, env.ADMIN_PIN);
-        if (!pinOk && kvHash) pinOk = timingSafeEq(await sha256Hex(body.pin), kvHash);
-        if (!pinOk) {
+        const kind = await verifyAdminCredential(env, secret);
+        if (!kind) {
           await loginFail(env, ip);
-          return json({ ok: false, error: 'invalid_pin' }, 401);
+          return json({ ok: false, error: 'invalid_credentials' }, 401);
         }
 
         await loginReset(env, ip);
@@ -542,8 +638,9 @@ export default {
         return json({ ok: true });
       }
 
-      // ── self-service PIN reset (email link to the owner inbox) ────
-      if (request.method === 'POST' && path === '/api/admin/forgot-pin') {
+      // ── self-service password reset (email link to the owner inbox) ────
+      // forgot-pin is kept as a legacy alias of forgot-password.
+      if (request.method === 'POST' && (path === '/api/admin/forgot-password' || path === '/api/admin/forgot-pin')) {
         const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
         // Strongly-consistent per-IP cooldown (Durable Object) so this
         // endpoint can't spam the owner inbox with reset emails.
@@ -566,12 +663,14 @@ export default {
         return json({ ok: true, detail: 'If email alerts are configured, a single-use reset link (valid 15 minutes) was sent to the owner inbox.' });
       }
 
-      if (request.method === 'POST' && path === '/api/admin/reset-pin') {
-        const body = await readJson(request, 1024);
+      // reset-pin is kept as a legacy alias of reset-password.
+      if (request.method === 'POST' && (path === '/api/admin/reset-password' || path === '/api/admin/reset-pin')) {
+        const body = await readJson(request, 2048);
         const token = body && typeof body.token === 'string' ? body.token.trim() : '';
-        const pin = body && typeof body.pin === 'string' ? body.pin.trim() : '';
-        if (!/^[0-9]{4,8}$/.test(pin)) {
-          return json({ ok: false, error: 'bad_pin', detail: 'PIN must be 4-8 digits.' }, 400);
+        const password = body && typeof body.password === 'string' ? body.password
+          : body && typeof body.pin === 'string' ? body.pin : null;
+        if (!passwordValid(password)) {
+          return json({ ok: false, error: 'bad_password', detail: 'Password must be ' + PASSWORD_MIN + '-' + PASSWORD_MAX + ' characters.' }, 400);
         }
         if (!token || !env.INQUIRIES) return json({ ok: false, error: 'bad_request' }, 400);
         const key = RESET_PREFIX + token;
@@ -579,12 +678,43 @@ export default {
         if (!val) {
           return json({ ok: false, error: 'invalid_token', detail: 'This reset link is invalid, already used, or expired. Request a new one.' }, 400);
         }
-        await env.INQUIRIES.put(PIN_HASH_KEY, await sha256Hex(pin)); // new credential (hashed)
-        await env.INQUIRIES.delete(key);                             // single use
+        await env.INQUIRIES.put(PASS_HASH_KEY, await hashPassword(password)); // new credential (PBKDF2)
+        await env.INQUIRIES.delete(PIN_HASH_KEY);                              // retire legacy PIN hash
+        await env.INQUIRIES.delete(key);                                       // single use
         // Kill every existing session so old sign-ins stop working
         const sess = await env.INQUIRIES.list({ prefix: SESS_PREFIX });
         await Promise.all(sess.keys.map(k => env.INQUIRIES.delete(k.name)));
-        return json({ ok: true, detail: 'PIN updated. Sign in with your new PIN.' });
+        return json({ ok: true, detail: 'Password updated. Sign in with your new password.' });
+      }
+
+      // ── change password (admin, Bearer token) — old sessions survive ────
+      if (request.method === 'POST' && path === '/api/admin/change-password') {
+        if (!(await checkAuth(request, env))) return json({ ok: false, error: 'unauthorized' }, 401);
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const lockSecs = await loginLocked(env, ip);
+        if (lockSecs) return json({ ok: false, error: 'rate_limited', retry_after: lockSecs }, 429,
+          { 'Retry-After': String(lockSecs) });
+        const body = await readJson(request, 4096);
+        const current = body && typeof body.current === 'string' ? body.current : null;
+        const next = body && typeof body.next === 'string' ? body.next : null;
+        if (current === null || !passwordValid(next)) {
+          return json({ ok: false, error: 'bad_password', detail: 'New password must be ' + PASSWORD_MIN + '-' + PASSWORD_MAX + ' characters.' }, 400);
+        }
+        const kind = await verifyAdminCredential(env, current);
+        if (!kind) {
+          await loginFail(env, ip);
+          return json({ ok: false, error: 'invalid_credentials', detail: 'Your current password is incorrect.' }, 401);
+        }
+        await loginReset(env, ip);
+        await env.INQUIRIES.put(PASS_HASH_KEY, await hashPassword(next));
+        await env.INQUIRIES.delete(PIN_HASH_KEY); // retire legacy PIN hash
+        // Invalidate every OTHER session (keep the one that made the change)
+        const keep = bearerToken(request);
+        const sess = await env.INQUIRIES.list({ prefix: SESS_PREFIX });
+        await Promise.all(sess.keys
+          .filter(k => k.name !== SESS_PREFIX + keep)
+          .map(k => env.INQUIRIES.delete(k.name)));
+        return json({ ok: true, detail: 'Password changed. Other signed-in sessions were signed out.' });
       }
 
       // ── admin endpoints (Bearer session token) ──────────

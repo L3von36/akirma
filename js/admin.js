@@ -3,7 +3,7 @@
  * Admin dashboard logic. Requires config.js + store.js.
  *
  * Single live mode: data comes from the site's own API (Cloudflare
- * Worker + KV). Sign-in is a PIN verified server-side (POST
+ * Worker + KV). Sign-in is a PASSWORD verified server-side (POST
  * /api/admin/login → Bearer session token). If the API is unreachable
  * the dashboard shows an explicit error — never sample data.
  *
@@ -63,7 +63,10 @@
     wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>',
   };
 
-  /* ── AUTH / BOOT ── */
+  /* ── AUTH / BOOT ──
+   * Sign-in is a PASSWORD verified server-side (POST /api/admin/login →
+   * Bearer session token). Self-service recovery: "Forgot password?"
+   * emails a single-use reset link (?reset=<token>) to the owner inbox. */
   let resetMode = false; // true when arriving from an emailed ?reset=<token> link
 
   function showLogin() {
@@ -73,8 +76,8 @@
     $('forgot-area').style.display = resetMode ? 'none' : '';
     $('reset-form').style.display = resetMode ? 'flex' : 'none';
     $('login-sub').textContent = resetMode
-      ? 'Choose a new admin PIN to finish the reset.'
-      : 'Enter your admin PIN to manage real booking inquiries & subscribers from the website.';
+      ? 'Choose a new admin password to finish the reset.'
+      : 'Enter your admin password to manage booking inquiries & subscribers.';
   }
   function showApp() {
     $('admin-login').style.display = 'none';
@@ -88,49 +91,128 @@
   async function boot() {
     // A live session token (if any) was restored from sessionStorage by
     // store.js — it is validated on the first API call anyway.
+    wireLoginFields();
     if (S.adminSessionActive()) showApp();
     else showLogin();
   }
 
-  function loginError(msg) {
+  /** Wire up show/hide toggles, caps-lock hints and strength meters.
+   *  (Login-card fields exist at boot; Settings fields are re-bound
+   *  inside renderSettings() each time that view is rendered.) */
+  function wireLoginFields() {
+    bindPwToggle('admin-password');
+    bindPwToggle('new-password');
+    bindPwToggle('new-password2');
+    bindCapsHint('admin-password', 'pw-caps');
+    bindMeter('new-password', 'pw-meter');
+  }
+
+  function loginError(msg, opts) {
     const el = $('login-error');
     el.textContent = msg;
     el.style.display = 'block';
+    if (el.previousElementSibling && el.previousElementSibling.id === 'login-info') el.previousElementSibling.style.display = 'none';
+    // Micro-interaction: shake the card so the failure is felt, not just read.
+    const card = document.querySelector('.login-card');
+    if (card && !(opts && opts.quiet)) {
+      card.classList.remove('shake');
+      void card.offsetWidth; // restart animation
+      card.classList.add('shake');
+    }
+  }
+
+  function loginInfo(msg) {
+    const el = $('login-info');
+    el.textContent = msg;
+    el.style.display = 'block';
+    $('login-error').style.display = 'none';
+  }
+
+  /* ── shared password-field helpers ── */
+  function bindPwToggle(inputId) {
+    const input = $(inputId);
+    const wrap = input && input.closest('.pw-wrap');
+    if (!input || !wrap) return;
+    const btn = wrap.querySelector('.pw-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      wrap.classList.toggle('pw-visible', show);
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      input.focus({ preventScroll: true });
+    });
+  }
+
+  /** Caps-Lock warning: element is shown while CapsLock is on. */
+  function bindCapsHint(inputId, hintId) {
+    const input = $(inputId), hint = $(hintId);
+    if (!input || !hint) return;
+    const set = (on) => { hint.style.display = on ? 'flex' : 'none'; };
+    input.addEventListener('keydown', (e) => {
+      if (e.getModifierState) set(e.getModifierState('CapsLock'));
+    });
+    input.addEventListener('keyup', (e) => {
+      if (e.getModifierState) set(e.getModifierState('CapsLock'));
+    });
+    input.addEventListener('blur', () => set(false));
+  }
+
+  const PW_LABELS = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
+  function pwScore(pw) {
+    if (!pw) return -1;
+    if (pw.length < 8) return 0;
+    let s = 0;
+    if (pw.length >= 12) s++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
+    if (/\d/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    return Math.min(4, s + 1); // 1..4 → Weak..Strong
+  }
+  function updateMeter(meterId, pw) {
+    const m = $(meterId);
+    if (!m) return;
+    const score = pwScore(pw);
+    if (score < 0) { m.hidden = true; return; }
+    m.hidden = false;
+    m.dataset.score = String(score);
+    const label = m.querySelector('.pw-meter-label');
+    if (label) label.textContent = PW_LABELS[score];
+  }
+  function bindMeter(inputId, meterId) {
+    const input = $(inputId);
+    if (!input) return;
+    input.addEventListener('input', () => updateMeter(meterId, input.value));
   }
 
   $('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('login-error').style.display = 'none';
-    const pin = ($('admin-pin').value || '').trim();
+    const pw = $('admin-password').value || '';
+    if (!pw) { loginError('Please enter your admin password.'); return; }
     const btn = $('login-btn');
-    btn.disabled = true; btn.textContent = 'Verifying…';
+    btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Verifying…';
     try {
-      await S.adminLogin(pin); // server-side PIN check → session token
+      await S.adminLogin(pw); // server-side password check → session token
       showApp();
     } catch (err) {
       const d = (err && err.data) || {};
       if (d.error === 'rate_limited') {
         const mins = Math.max(1, Math.ceil((d.retry_after || 60) / 60));
         loginError('Too many attempts. Try again in about ' + mins + ' minute' + (mins > 1 ? 's' : '') + '.');
-      } else if (d.error === 'pin_not_configured') {
-        loginError('Server is missing the ADMIN_PIN secret. Deploy it with: npx wrangler secret put ADMIN_PIN');
-      } else if (d.error === 'invalid_pin') {
-        loginError('Incorrect PIN.');
+      } else if (d.error === 'password_not_configured') {
+        loginError('No admin password is configured yet. Use "Forgot password?" below to set one by email.');
+      } else if (d.error === 'invalid_credentials') {
+        loginError('Incorrect password. Please try again.');
       } else {
         loginError('Sign-in failed: ' + ((err && err.message) || 'network error'));
       }
     } finally {
-      btn.disabled = false; btn.textContent = 'Sign In';
+      btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = 'Sign In';
     }
   });
 
-  /* ── FORGOT PIN / SELF-SERVICE RESET ── */
-  function loginInfo(msg) {
-    const el = $('login-info');
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-
+  /* ── FORGOT PASSWORD / SELF-SERVICE RESET ── */
   $('forgot-btn').addEventListener('click', () => {
     $('login-error').style.display = 'none';
     $('login-info').style.display = 'none';
@@ -138,14 +220,22 @@
     f.style.display = f.style.display === 'none' ? 'flex' : 'none';
   });
 
+  // "Back to sign in" inside the forgot form
+  const forgotCancel = $('forgot-cancel');
+  if (forgotCancel) forgotCancel.addEventListener('click', () => {
+    $('login-error').style.display = 'none';
+    $('login-info').style.display = 'none';
+    $('forgot-form').style.display = 'none';
+  });
+
   $('forgot-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('login-error').style.display = 'none';
     $('login-info').style.display = 'none';
     const btn = $('forgot-send');
-    btn.disabled = true; btn.textContent = 'Sending…';
+    btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Sending…';
     try {
-      const d = await S.forgotPin();
+      const d = await S.forgotPassword();
       $('forgot-form').style.display = 'none';
       loginInfo(d.detail || 'Check the owner email inbox for a reset link (valid 15 minutes).');
     } catch (err) {
@@ -157,7 +247,7 @@
         loginError('Could not send the reset email: ' + ((err && err.message) || 'network error'));
       }
     } finally {
-      btn.disabled = false; btn.textContent = 'Email me a reset link';
+      btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = 'Email me a reset link';
     }
   });
 
@@ -165,39 +255,42 @@
     e.preventDefault();
     $('login-error').style.display = 'none';
     $('login-info').style.display = 'none';
-    const pin = ($('new-pin').value || '').trim();
-    const pin2 = ($('new-pin2').value || '').trim();
-    if (!/^[0-9]{4,8}$/.test(pin)) { loginError('PIN must be 4-8 digits.'); return; }
-    if (pin !== pin2) { loginError('The two PINs do not match.'); return; }
+    const pw = $('new-password').value || '';
+    const pw2 = $('new-password2').value || '';
+    if (pw.length < 8) { loginError('Password must be at least 8 characters.'); return; }
+    if (pw.length > 128) { loginError('Password must be at most 128 characters.'); return; }
+    if (pw !== pw2) { loginError('The two passwords do not match.'); return; }
     const btn = $('reset-btn');
-    btn.disabled = true; btn.textContent = 'Updating…';
+    btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Updating…';
     try {
-      const d = await S.resetPin($('reset-form').dataset.token || '', pin);
+      const d = await S.resetPassword($('reset-form').dataset.token || '', pw);
       const f = $('reset-form');
       f.style.display = 'none';
       f.dataset.token = '';
+      $('new-password').value = ''; $('new-password2').value = '';
+      updateMeter('pw-meter', '');
       resetMode = false;
       showLogin();
       $('admin-login').style.display = 'flex';
       $('login-form').style.display = 'flex';
-      loginInfo(d.detail || 'PIN updated — sign in with your new PIN.');
+      loginInfo(d.detail || 'Password updated — sign in with your new password.');
     } catch (err) {
       const d = (err && err.data) || {};
       if (d.error === 'invalid_token') {
         loginError('This reset link is invalid, already used, or expired. Request a new one.');
-      } else if (d.error === 'bad_pin') {
-        loginError('PIN must be 4-8 digits.');
+      } else if (d.error === 'bad_password') {
+        loginError(d.detail || 'Password must be 8-128 characters.');
       } else {
         loginError('Reset failed: ' + ((err && err.message) || 'network error'));
       }
     } finally {
-      btn.disabled = false; btn.textContent = 'Set new PIN';
+      btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = 'Set new password';
     }
   });
 
   // Arriving from the emailed link: /admin.html?reset=<token> — swap the
-  // login card for the "new PIN" form. The token stays in memory only and
-  // is scrubbed from the URL immediately.
+  // login card for the "new password" form. The token stays in memory only
+  // and is scrubbed from the URL immediately.
   (function () {
     const m = /[?&]reset=([0-9a-f]{16,})/i.exec(location.search);
     if (!m) return;
@@ -551,13 +644,60 @@
       </div>
 
       <div class="panel">
+        <div class="panel-head"><h3>Admin Password</h3></div>
+        <form id="cp-form" class="cp-form" autocomplete="off">
+          <div class="cp-grid">
+            <div class="form-field">
+              <label for="cp-current">Current password</label>
+              <div class="pw-wrap">
+                <input class="form-input" type="password" id="cp-current" autocomplete="current-password" required />
+                <button type="button" class="pw-toggle" aria-label="Show password">
+                  <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                  <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="cp-next">New password (min. 8 characters)</label>
+              <div class="pw-wrap">
+                <input class="form-input" type="password" id="cp-next" autocomplete="new-password" required />
+                <button type="button" class="pw-toggle" aria-label="Show password">
+                  <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                  <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                </button>
+              </div>
+              <div class="pw-meter" id="cp-meter" hidden>
+                <div class="pw-meter-track"><div class="pw-meter-bar"></div></div>
+                <span class="pw-meter-label"></span>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="cp-next2">Repeat new password</label>
+              <div class="pw-wrap">
+                <input class="form-input" type="password" id="cp-next2" autocomplete="new-password" required />
+                <button type="button" class="pw-toggle" aria-label="Show password">
+                  <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                  <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="cp-actions">
+            <button type="submit" class="btn btn-primary" id="cp-btn">Change password</button>
+            <span class="cp-result" id="cp-result"></span>
+          </div>
+          <p class="login-hint" style="margin-top:0.75rem">Changing the password signs out every OTHER device and tab. This session stays signed in. If you forget the password, use "Forgot password?" on the sign-in screen — a reset link is emailed to the owner inbox.</p>
+        </form>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><h3>Security Notes</h3></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>How access is protected</h4>
-          <p>Your PIN is verified server-side by the Cloudflare Worker against the <code>ADMIN_PIN</code> secret — it never ships in any JavaScript bundle. Successful sign-in returns a random session token (8 h sliding expiry, stored only for the current tab) that authorizes admin API calls. Failed attempts are rate-limited (5 tries → 15 min lockout). To change the PIN run: <code>npx wrangler secret put ADMIN_PIN</code>.</p></div></div>
+          <p>Your password is verified server-side by the Cloudflare Worker and stored only as a PBKDF2-SHA256 hash in private KV storage — it never ships in any JavaScript bundle. Successful sign-in returns a random session token (8 h sliding expiry, stored only for the current tab) that authorizes admin API calls. Failed attempts are rate-limited (5 tries → 15 min lockout), and "Forgot password?" emails a single-use reset link to the owner inbox.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>Real data only</h4>
           <p>Every record you see here was submitted through the live website — there is no demo or sample mode. If the API cannot be reached, the dashboard shows an explicit error instead of fake data.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>Privacy</h4>
-          <p>Inquiries contain personal data (names, phones, emails). Access is limited to holders of the admin PIN; export CSVs only when needed and delete stale records.</p></div></div>
+          <p>Inquiries contain personal data (names, phones, emails). Access is limited to holders of the admin password; export CSVs only when needed and delete stale records.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>This page is hidden from search engines</h4>
           <p><code>admin.html</code> has a noindex meta tag and is disallowed in <code>robots.txt</code>.</p></div></div>
       </div>`;
@@ -595,6 +735,42 @@
         if (out) { out.textContent = 'Failed: ' + ((e && e.message) || 'network error'); out.style.color = '#b4552d'; }
       } finally {
         tbtn.disabled = false;
+      }
+    });
+
+    // Change password (Settings → Admin Password)
+    bindPwToggle('cp-current');
+    bindPwToggle('cp-next');
+    bindPwToggle('cp-next2');
+    bindMeter('cp-next', 'cp-meter');
+    const cpForm = $('cp-form');
+    if (cpForm) cpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const out = $('cp-result');
+      const show = (msg, ok) => { out.textContent = msg; out.className = 'cp-result' + (ok ? ' ok' : ' bad'); };
+      const cur = $('cp-current').value || '';
+      const next = $('cp-next').value || '';
+      const next2 = $('cp-next2').value || '';
+      if (!cur) { show('Enter your current password.', false); return; }
+      if (next.length < 8) { show('New password must be at least 8 characters.', false); return; }
+      if (next.length > 128) { show('New password must be at most 128 characters.', false); return; }
+      if (next !== next2) { show('The two new passwords do not match.', false); return; }
+      if (next === cur) { show('The new password must be different from the current one.', false); return; }
+      const btn = $('cp-btn');
+      btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Saving…';
+      try {
+        const d = await S.changePassword(cur, next);
+        $('cp-current').value = ''; $('cp-next').value = ''; $('cp-next2').value = '';
+        updateMeter('cp-meter', '');
+        show(d.detail || 'Password changed.', true);
+      } catch (err) {
+        const dd = (err && err.data) || {};
+        if (dd.error === 'invalid_credentials') show(dd.detail || 'Your current password is incorrect.', false);
+        else if (dd.error === 'rate_limited') show('Too many attempts — try again in a few minutes.', false);
+        else if (dd.error === 'bad_password') show(dd.detail || 'New password must be 8-128 characters.', false);
+        else show('Change failed: ' + ((err && err.message) || 'network error'), false);
+      } finally {
+        btn.disabled = false; btn.classList.remove('is-loading'); btn.textContent = 'Change password';
       }
     });
   }

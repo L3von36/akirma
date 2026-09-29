@@ -17,48 +17,86 @@
 
   <!-- ══════════ LOGIN ══════════ -->
   <div class="admin-login" id="admin-login">
+    <!-- Decorative aurora backdrop (pure CSS, decorative only) -->
+    <div class="login-bg" aria-hidden="true">
+      <i class="login-bg-orb login-bg-orb--a"></i>
+      <i class="login-bg-orb login-bg-orb--b"></i>
+    </div>
+
     <div class="login-card">
       <div class="login-logo">
         <img src="logo.webp" alt="Akirma Events logo" />
       </div>
+      <p class="login-eyebrow">Secure admin access</p>
       <h1 class="login-title">Akirma Admin</h1>
       <p class="login-sub" id="login-sub">Sign in to manage inquiries &amp; subscribers.</p>
 
-      <!-- PIN sign-in (verified server-side by the site API) -->
-      <form id="login-form" class="login-form" style="display:none" autocomplete="off">
+      <!-- Password sign-in (verified server-side by the site API) -->
+      <form id="login-form" class="login-form" style="display:none" autocomplete="on">
+        <input type="text" name="username" value="akirma-admin" autocomplete="username" hidden aria-hidden="true" tabindex="-1" />
         <div class="form-field">
-          <label for="admin-pin">Admin PIN</label>
-          <input class="form-input" type="password" id="admin-pin" inputmode="numeric" placeholder="••••" required />
+          <label for="admin-password">Admin password</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="admin-password" placeholder="Enter your password" autocomplete="current-password" required />
+            <button type="button" class="pw-toggle" aria-label="Show password">
+              <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+              <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+            </button>
+          </div>
+          <p class="pw-caps" id="pw-caps" style="display:none">Caps Lock is on</p>
         </div>
         <button type="submit" class="btn btn-primary btn-lg login-btn" id="login-btn">Sign In</button>
-        <p class="login-hint">Your PIN is verified on the server — it is never stored in this page's code. Sessions last 8 hours and sign out clears them.</p>
+        <div class="login-row">
+          <button type="button" class="login-link" id="forgot-btn">Forgot password?</button>
+        </div>
+        <p class="login-hint">Your password is verified on the server and stored only as a hash — it never appears in this page's code. Sessions last 8 hours and sign out clears them.</p>
       </form>
 
-      <!-- Forgot PIN: email a single-use reset link to the owner inbox -->
+      <!-- Forgot password: email a single-use reset link to the owner inbox -->
       <div id="forgot-area">
-        <button type="button" class="login-link" id="forgot-btn">Forgot PIN?</button>
         <form id="forgot-form" class="login-form" style="display:none" autocomplete="off">
           <p class="login-hint">We will email a single-use reset link (valid 15 minutes) to the site owner inbox: <strong>info@akirmaevents.com</strong>.</p>
           <button type="submit" class="btn btn-primary btn-lg login-btn" id="forgot-send">Email me a reset link</button>
+          <div class="login-row">
+            <button type="button" class="login-link" id="forgot-cancel">Back to sign in</button>
+          </div>
         </form>
       </div>
 
-      <!-- New PIN form — opened from the emailed reset link (?reset=<token>) -->
+      <!-- New password form — opened from the emailed reset link (?reset=<token>) -->
       <form id="reset-form" class="login-form" style="display:none" autocomplete="off">
         <div class="form-field">
-          <label for="new-pin">New PIN (4-8 digits)</label>
-          <input class="form-input" type="password" id="new-pin" inputmode="numeric" maxlength="8" required />
+          <label for="new-password">New password (min. 8 characters)</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="new-password" placeholder="At least 8 characters" autocomplete="new-password" required minlength="8" maxlength="128" />
+            <button type="button" class="pw-toggle" aria-label="Show password">
+              <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+              <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+            </button>
+          </div>
+          <div class="pw-meter" id="pw-meter" hidden>
+            <div class="pw-meter-track"><div class="pw-meter-bar"></div></div>
+            <span class="pw-meter-label"></span>
+          </div>
         </div>
         <div class="form-field">
-          <label for="new-pin2">Repeat new PIN</label>
-          <input class="form-input" type="password" id="new-pin2" inputmode="numeric" maxlength="8" required />
+          <label for="new-password2">Repeat new password</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="new-password2" placeholder="Repeat it" autocomplete="new-password" required minlength="8" maxlength="128" />
+            <button type="button" class="pw-toggle" aria-label="Show password">
+              <svg class="pw-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+              <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+            </button>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg login-btn" id="reset-btn">Set new PIN</button>
+        <button type="submit" class="btn btn-primary btn-lg login-btn" id="reset-btn">Set new password</button>
+        <p class="login-hint">Use at least 8 characters — a mix of letters, numbers and symbols is recommended. You'll sign in with this password from now on.</p>
       </form>
 
       <p class="login-error" id="login-error" style="display:none"></p>
       <p class="login-info" id="login-info" style="display:none"></p>
       <a class="login-back" href="index.html">&larr; Back to website</a>
+      <p class="login-foot">Protected area &middot; Akirma Events PLC</p>
     </div>
   </div>
 

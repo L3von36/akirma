@@ -7,8 +7,8 @@
  * unreachable, calls reject and the dashboard shows an explicit error.
  *
  * SECURITY MODEL (see worker.js):
- *  - The PIN lives only in the Worker secret ADMIN_PIN and is verified
- *    server-side by POST /api/admin/login (never shipped to the client).
+ *  - The admin password lives only server-side (PBKDF2 hash in KV) and is
+ *    verified by POST /api/admin/login (never shipped to the client).
  *  - Successful login returns a random session token (8 h sliding TTL),
  *    kept in sessionStorage for the current tab only and sent as
  *    `Authorization: Bearer` on admin calls.
@@ -85,12 +85,13 @@
   /* ── PUBLIC API ───────────────────────────────────────── */
   const store = { mode: 'server' };
 
-  /** Admin dashboard: exchange the PIN for a server-side session token.
-   *  The PIN is verified by the Worker (constant-time, brute-force
-   *  locked); only the random token is kept, in sessionStorage. */
-  store.adminLogin = async function (pin) {
+  /** Admin dashboard: exchange the password for a server-side session token.
+   *  The password is verified by the Worker (constant-time compare against
+   *  a PBKDF2 hash, brute-force locked); only the random token is kept, in
+   *  sessionStorage. */
+  store.adminLogin = async function (password) {
     const d = await api('/api/admin/login', {
-      method: 'POST', public: true, body: JSON.stringify({ pin: String(pin || '') }),
+      method: 'POST', public: true, body: JSON.stringify({ password: String(password || '') }),
     });
     SERVER.token = String(d.token || '');
     SERVER.expiresAt = Date.now() + (parseInt(d.expires_in, 10) || 0) * 1000;
@@ -108,17 +109,25 @@
     clearSession(false);
   };
 
-  /** Ask the Worker to email a single-use PIN reset link to the owner
+  /** Ask the Worker to email a single-use password reset link to the owner
    *  inbox (NOTIFY_EMAIL). Always resolves ok:true unless rate-limited. */
-  store.forgotPin = function () {
-    return api('/api/admin/forgot-pin', { method: 'POST', public: true, body: '{}' });
+  store.forgotPassword = function () {
+    return api('/api/admin/forgot-password', { method: 'POST', public: true, body: '{}' });
   };
 
-  /** Exchange a reset token for a new PIN (single use, 15-minute window).
-   *  The Worker stores only a SHA-256 hash and invalidates all sessions. */
-  store.resetPin = function (token, pin) {
-    return api('/api/admin/reset-pin', {
-      method: 'POST', public: true, body: JSON.stringify({ token, pin }),
+  /** Exchange a reset token for a new password (single use, 15-minute
+   *  window). The Worker stores only a PBKDF2 hash and kills all sessions. */
+  store.resetPassword = function (token, password) {
+    return api('/api/admin/reset-password', {
+      method: 'POST', public: true, body: JSON.stringify({ token, password }),
+    });
+  };
+
+  /** Change the password from inside the dashboard (requires the current
+   *  one). Keeps the current session alive; other sessions are signed out. */
+  store.changePassword = function (current, next) {
+    return api('/api/admin/change-password', {
+      method: 'POST', body: JSON.stringify({ current, next }),
     });
   };
 
