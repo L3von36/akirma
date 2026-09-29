@@ -20,6 +20,11 @@
     view: 'overview',
     inquiries: [],
     subscribers: [],
+    emEvents: [],
+    emLoadError: null,
+    emFilter: 'all',
+    emSearch: '',
+    emEditingId: null,
     filter: 'all',
     loaded: false,
   };
@@ -61,6 +66,7 @@
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>',
     wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>',
   };
 
   /* ── AUTH / BOOT ──
@@ -72,7 +78,7 @@
   /* Must match the data-v attribute on <html> in admin.html. When they
    * differ, the visitor is running a cached JS/HTML mix — we warn instead
    * of silently misbehaving (the 2026-09 stale-cache reset-button bug). */
-  const ADMIN_UI_VERSION = '20260930c';
+  const ADMIN_UI_VERSION = '20260930d';
 
   function hideLoginBanners() {
     $('login-error').style.display = 'none';
@@ -378,6 +384,15 @@
       state.loaded = true;
       state.loadError = (err && err.message) || 'Failed to load data.';
     }
+    // Event Manager loads independently — a stale/failed load must never
+    // block the rest of the dashboard.
+    state.emLoadError = null;
+    try {
+      state.emEvents = (await S.getEmEvents()) || [];
+    } catch (err) {
+      console.warn('Event Manager load failed:', err);
+      state.emLoadError = (err && err.message) || 'Failed to load events.';
+    }
     renderBadge();
     render();
   }
@@ -388,6 +403,12 @@
     const b = $('badge-new');
     if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; }
     else b.style.display = 'none';
+    const up = state.emEvents.filter(emIsUpcoming).length;
+    const be = $('badge-em');
+    if (be) {
+      if (up > 0) { be.textContent = up; be.style.display = 'inline-flex'; }
+      else be.style.display = 'none';
+    }
   }
 
   /* ── CSV ── */
@@ -411,7 +432,7 @@
   }
 
   /* ── NAV ── */
-  const TITLES = { overview: 'Overview', inquiries: 'Inquiries', subscribers: 'Newsletter Subscribers', content: 'Website Content', settings: 'Settings' };
+  const TITLES = { overview: 'Overview', inquiries: 'Inquiries', subscribers: 'Newsletter Subscribers', content: 'Website Content', em: 'Events Manager', settings: 'Settings' };
   document.querySelectorAll('.sb-link[data-view]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.view = btn.dataset.view;
@@ -452,6 +473,7 @@
     if (state.view === 'inquiries') return renderInquiries(c);
     if (state.view === 'subscribers') return renderSubscribers(c);
     if (state.view === 'content') return renderContent(c);
+    if (state.view === 'em') return renderEventsManager(c);
     if (state.view === 'settings') return renderSettings(c);
   }
 
@@ -475,6 +497,7 @@
       <div class="stats-grid">
         ${statCard(ICONS.inbox, 'Total Inquiries', inq.length)}
         ${statCard(ICONS.mail, 'New / Unread', unread, 'gold')}
+        ${statCard(ICONS.calendar, 'Upcoming Events', state.emEvents.filter(emIsUpcoming).length)}
         ${statCard(ICONS.clock, 'This Week', week)}
         ${statCard(ICONS.users, 'Subscribers', state.subscribers.length)}
       </div>
@@ -632,7 +655,7 @@
   }
   $('drawer-close').addEventListener('click', closeDrawer);
   $('drawer-scrim').addEventListener('click', closeDrawer);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeEmModal(); } });
 
   /* ── SUBSCRIBERS ── */
   function renderSubscribers(c) {
@@ -668,6 +691,237 @@
       refreshData();
     }));
   }
+
+  /* ── EVENT MANAGER — the owner's private record of every event ──
+   * Completely separate from the public website content: this is business
+   * bookkeeping (who, when, where, how much, paid how much). Stored in KV
+   * via /api/em-events — private, admin-only, survives every device. */
+  const EM_STATUS_META = {
+    inquiry:   { label: 'Inquiry',        cls: 'st-inquiry' },
+    confirmed: { label: 'Confirmed',      cls: 'st-confirmed' },
+    prep:      { label: 'In preparation', cls: 'st-prep' },
+    completed: { label: 'Completed',      cls: 'st-completed' },
+    cancelled: { label: 'Cancelled',      cls: 'st-cancelled' },
+  };
+  function emToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  function emIsUpcoming(ev) {
+    if (!ev || !ev.date || ev.status === 'completed' || ev.status === 'cancelled') return false;
+    return (Date.parse(ev.date + 'T00:00:00') || 0) >= emToday();
+  }
+  function emFmtETB(n) { return 'ETB ' + (Math.round(Number(n)) || 0).toLocaleString('en-US'); }
+  function emFmtDate(s) {
+    if (!s) return '—';
+    const d = Date.parse(s + 'T00:00:00');
+    return isNaN(d) ? s : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function emDay(s) {
+    const d = Date.parse((s || '') + 'T00:00:00');
+    return isNaN(d) ? '' : new Date(d).toLocaleDateString('en-GB', { weekday: 'short' });
+  }
+  function emBalance(ev) { return Math.max(0, (Number(ev.price) || 0) - (Number(ev.advance) || 0)); }
+
+  /** Filter + sort: upcoming first (soonest date), then past (newest first). */
+  function emFilteredList() {
+    const q = state.emSearch.trim().toLowerCase();
+    let list = state.emEvents.filter(ev => {
+      if (state.emFilter === 'upcoming') return emIsUpcoming(ev);
+      if (state.emFilter === 'completed') return ev.status === 'completed';
+      if (state.emFilter === 'cancelled') return ev.status === 'cancelled';
+      return true; // 'all'
+    });
+    if (q) list = list.filter(ev =>
+      [ev.client, ev.type, ev.location, ev.phone, ev.email, ev.notes, ev.date]
+        .some(v => String(v || '').toLowerCase().includes(q)));
+    list = list.slice().sort((a, b) => {
+      const au = emIsUpcoming(a), bu = emIsUpcoming(b);
+      if (au !== bu) return au ? -1 : 1;
+      const ad = Date.parse(a.date || '') || 0, bd = Date.parse(b.date || '') || 0;
+      return au ? ad - bd : bd - ad;
+    });
+    return list;
+  }
+
+  function emRowHTML(ev) {
+    const st = EM_STATUS_META[ev.status] || EM_STATUS_META.inquiry;
+    const bal = emBalance(ev);
+    const phoneDigits = String(ev.phone || '').replace(/[^0-9]/g, '');
+    const wa = phoneDigits ? `https://wa.me/${phoneDigits.replace(/^0+/, '251').slice(0, 13)}?text=${encodeURIComponent('Hello ' + (ev.client || '') + ', greetings from Akirma Events!')}` : '';
+    return `
+      <tr data-emid="${esc(ev.id)}">
+        <td class="em-when"><strong>${esc(emFmtDate(ev.date))}</strong>${emDay(ev.date) ? `<small>${emDay(ev.date)}</small>` : ''}</td>
+        <td class="em-client"><span class="avatar" style="width:2.25rem;height:2.25rem;font-size:.72rem">${esc(initials(ev.client))}</span>
+          <span class="em-client-txt"><strong>${esc(ev.client || '—')}</strong>${ev.phone ? `<small><a href="tel:${esc(String(ev.phone).replace(/\s/g, ''))}">${esc(ev.phone)}</a></small>` : (ev.email ? `<small>${esc(ev.email)}</small>` : '')}</span></td>
+        <td>${esc(ev.type || '—')}${ev.guests ? `<small>${esc(ev.guests)} guests</small>` : ''}</td>
+        <td>${esc(ev.location || '—')}</td>
+        <td class="em-price"><strong>${ev.price ? esc(emFmtETB(ev.price)) : '—'}</strong>${ev.price && bal > 0 ? `<small class="em-bal">balance ${esc(emFmtETB(bal))}</small>` : (ev.price ? '<small class="em-paid">fully paid</small>' : '')}</td>
+        <td><span class="em-pill ${st.cls}">${st.label}</span></td>
+        <td class="em-row-actions">
+          ${wa ? `<a class="mini-btn" target="_blank" rel="noopener" href="${wa}" title="WhatsApp the client">${ICONS.wa}</a>` : ''}
+          <button class="mini-btn" data-emedit="${esc(ev.id)}">Edit</button>
+          <button class="mini-btn danger" data-emdel="${esc(ev.id)}" title="Delete record">${ICONS.trash}</button>
+        </td>
+      </tr>`;
+  }
+
+  /** Redraw ONLY the table body — keeps the search box focus while typing. */
+  function emDrawRows() {
+    const wrap = $('em-table-wrap');
+    if (!wrap) return;
+    const list = emFilteredList();
+    wrap.innerHTML = list.length
+      ? `<table class="em-table"><thead><tr><th>When</th><th>Client</th><th>Type</th><th>Location</th><th>Price</th><th>Status</th><th></th></tr></thead><tbody>${list.map(emRowHTML).join('')}</tbody></table>`
+      : `<div class="empty-state">${ICONS.calendar}<p>No events match. Press <strong>+ Add event</strong> to record one — every event you complete builds your business history.</p></div>`;
+    wrap.querySelectorAll('[data-emedit]').forEach(b => b.addEventListener('click', () => openEmModal(b.dataset.emedit)));
+    wrap.querySelectorAll('[data-emdel]').forEach(b => b.addEventListener('click', async () => {
+      const ev = state.emEvents.find(x => x.id === b.dataset.emdel);
+      if (!ev) return;
+      if (!confirm(`Delete the record for "${ev.client || 'unnamed event'}" (${emFmtDate(ev.date)})? This cannot be undone.`)) return;
+      try {
+        await S.deleteEmEvent(ev.id);
+      } catch (err) {
+        alert('Delete failed: ' + ((err && err.message) || 'network error'));
+        return;
+      }
+      refreshData();
+    }));
+  }
+
+  function renderEventsManager(c) {
+    const all = state.emEvents;
+    const upcoming = all.filter(emIsUpcoming).length;
+    const completed = all.filter(e => e.status === 'completed').length;
+    const value = all.filter(e => e.status !== 'cancelled').reduce((s, e) => s + (Number(e.price) || 0), 0);
+
+    c.innerHTML = `
+      <div class="stats-grid">
+        ${statCard(ICONS.calendar, 'Total Events', all.length)}
+        ${statCard(ICONS.clock, 'Upcoming', upcoming, 'gold')}
+        ${statCard(ICONS.star, 'Completed', completed)}
+        ${statCard(ICONS.download, 'Total Value', emFmtETB(value))}
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Event Records</h3>
+          <div class="actions">
+            <button class="mini-btn" id="em-csv">${ICONS.download} Export CSV</button>
+            <button class="mini-btn primary" id="em-add">+ Add event</button>
+          </div>
+        </div>
+        ${state.emLoadError ? `<p class="content-hint" style="color:#b91c1c">Could not load event records: ${esc(state.emLoadError)} — press the refresh button in the top bar to retry.</p>` : ''}
+        <div class="em-toolbar">
+          <div class="filter-row">
+            ${['all', 'upcoming', 'completed', 'cancelled'].map(f => {
+              const n = f === 'all' ? all.length : f === 'upcoming' ? upcoming : all.filter(e => e.status === f).length;
+              return `<button class="filter-chip ${state.emFilter === f ? 'active' : ''}" data-emfilter="${f}">${f[0].toUpperCase() + f.slice(1)} (${n})</button>`;
+            }).join('')}
+          </div>
+          <input class="form-input em-search" id="em-search" type="search" placeholder="Search client, type, location, phone…"
+                 value="${esc(state.emSearch)}" />
+        </div>
+        <div id="em-table-wrap"></div>
+      </div>`;
+
+    c.querySelectorAll('[data-emfilter]').forEach(b => b.addEventListener('click', () => {
+      state.emFilter = b.dataset.emfilter;
+      c.querySelectorAll('[data-emfilter]').forEach(x => x.classList.toggle('active', x === b));
+      emDrawRows();
+    }));
+    $('em-search').addEventListener('input', () => {
+      state.emSearch = $('em-search').value;
+      emDrawRows(); // table-only redraw — search keeps focus
+    });
+    $('em-add').addEventListener('click', () => openEmModal(null));
+    $('em-csv').addEventListener('click', () =>
+      downloadCSV('akirma-events.csv', emFilteredList().map(ev => Object.assign({}, ev, { balance: emBalance(ev) })),
+        ['client', 'date', 'type', 'location', 'guests', 'phone', 'email', 'price', 'advance', 'balance', 'status', 'notes']));
+    emDrawRows();
+  }
+
+  /* ── Event modal (add / edit / delete) ── */
+  function openEmModal(id) {
+    const ev = id ? state.emEvents.find(x => x.id === id) : null;
+    state.emEditingId = ev ? ev.id : null;
+    $('em-modal-title').textContent = ev ? 'Edit event' : 'Add event';
+    $('em-f-client').value = ev ? (ev.client || '') : '';
+    $('em-f-phone').value = ev ? (ev.phone || '') : '';
+    $('em-f-email').value = ev ? (ev.email || '') : '';
+    const typeSel = $('em-f-type');
+    const typeVal = ev ? String(ev.type || 'Other') : 'Wedding';
+    typeSel.value = Array.from(typeSel.options).some(o => o.value === typeVal) ? typeVal : 'Other';
+    $('em-f-date').value = ev ? (ev.date || '') : '';
+    $('em-f-location').value = ev ? (ev.location || '') : '';
+    $('em-f-guests').value = ev ? (ev.guests || '') : '';
+    $('em-f-price').value = ev && ev.price ? String(ev.price) : '';
+    $('em-f-advance').value = ev && ev.advance ? String(ev.advance) : '';
+    $('em-f-status').value = ev ? (ev.status || 'inquiry') : 'inquiry';
+    $('em-f-notes').value = ev ? (ev.notes || '') : '';
+    emUpdateBalance();
+    $('em-delete').style.display = ev ? '' : 'none';
+    $('em-modal').classList.add('open');
+    $('em-modal').setAttribute('aria-hidden', 'false');
+    $('em-scrim').classList.add('show');
+    setTimeout(() => $('em-f-client').focus(), 60);
+  }
+  function closeEmModal() {
+    const m = $('em-modal');
+    if (!m || !m.classList.contains('open')) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    $('em-scrim').classList.remove('show');
+  }
+  function emUpdateBalance() {
+    const price = Number($('em-f-price').value) || 0;
+    const adv = Number($('em-f-advance').value) || 0;
+    $('em-balance').value = Math.max(0, price - adv).toLocaleString('en-US');
+  }
+  $('em-f-price').addEventListener('input', emUpdateBalance);
+  $('em-f-advance').addEventListener('input', emUpdateBalance);
+  $('em-close').addEventListener('click', closeEmModal);
+  $('em-cancel').addEventListener('click', closeEmModal);
+  $('em-scrim').addEventListener('click', closeEmModal);
+  $('em-save').addEventListener('click', async () => {
+    const rec = {
+      client: $('em-f-client').value.trim(),
+      phone: $('em-f-phone').value.trim(),
+      email: $('em-f-email').value.trim(),
+      type: $('em-f-type').value,
+      date: $('em-f-date').value,
+      location: $('em-f-location').value.trim(),
+      guests: $('em-f-guests').value.trim(),
+      price: Number($('em-f-price').value) || 0,
+      advance: Number($('em-f-advance').value) || 0,
+      status: $('em-f-status').value,
+      notes: $('em-f-notes').value.trim(),
+    };
+    if (!rec.client && !rec.date) {
+      alert('Please enter at least a client name or an event date.');
+      return;
+    }
+    if (state.emEditingId) rec.id = state.emEditingId;
+    const btn = $('em-save');
+    btn.disabled = true;
+    try {
+      await S.saveEmEvent(rec);
+      closeEmModal();
+      refreshData();
+    } catch (err) {
+      alert('Save failed: ' + ((err && err.message) || 'network error') + '. The record was not saved.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  $('em-delete').addEventListener('click', async () => {
+    const ev = state.emEvents.find(x => x.id === state.emEditingId);
+    if (!ev) return;
+    if (!confirm(`Delete the record for "${ev.client || 'unnamed event'}"? This cannot be undone.`)) return;
+    try {
+      await S.deleteEmEvent(ev.id);
+      closeEmModal();
+      refreshData();
+    } catch (err) {
+      alert('Delete failed: ' + ((err && err.message) || 'network error'));
+    }
+  });
 
   /* ── SETTINGS ── */
   function renderSettings(c) {

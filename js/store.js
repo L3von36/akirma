@@ -177,6 +177,24 @@
     await api('/api/subscriber', { method: 'DELETE', body: JSON.stringify({ id }) });
   };
 
+  /* ── EVENT MANAGER (owner's private event records) ────── */
+
+  /** Fetch tracked events. Resolves [{id, client, date, type, ...}]. */
+  store.getEmEvents = async function () {
+    const d = await api('/api/em-events');
+    return d.items || [];
+  };
+
+  /** Create (no id) or update (with id) one tracked event. */
+  store.saveEmEvent = async function (rec) {
+    const d = await api('/api/em-events', { method: 'POST', body: JSON.stringify({ rec }) });
+    return d.rec || rec;
+  };
+
+  store.deleteEmEvent = async function (id) {
+    await api('/api/em-events', { method: 'DELETE', body: JSON.stringify({ id }) });
+  };
+
   /* ── EMAIL ALERT diagnostics (Settings tab) ───────────── */
 
   /** Alert configuration for the admin Settings card. */

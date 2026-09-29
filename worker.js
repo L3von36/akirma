@@ -24,6 +24,11 @@
  *    GET    /api/notify-status  admin: email alert config (Bearer token)
  *    POST   /api/notify-test    admin: send a test alert  (Bearer token)
  *
+ *    Event Manager — the owner's private record of every event he did:
+ *    GET    /api/em-events      admin: list tracked events (Bearer token)
+ *    POST   /api/em-events      admin: create/update one  (Bearer token)
+ *    DELETE /api/em-events      admin: delete one         (Bearer token)
+ *
  *  Inquiries and newsletter subscribers are stored in Cloudflare KV
  *  (binding INQUIRIES) and appear in the admin dashboard at /admin.html.
  *
@@ -62,6 +67,8 @@ import { EmailMessage } from 'cloudflare:email';
 
 const PREFIX = 'inq:';      // keys look like: inq:<reverse-timestamp>:<id> → newest first
 const SUB_PREFIX = 'sub:';   // newsletter subscribers: sub:<reverse-timestamp>:<id>
+const EM_PREFIX = 'em:';     // event-manager records: em:<reverse-timestamp>:<id>
+const EM_STATUSES = ['inquiry', 'confirmed', 'prep', 'completed', 'cancelled'];
 const SESS_PREFIX = 'sess:'; // admin sessions: sess:<token>
 const SESSION_TTL = 8 * 3600;      // 8 hours (seconds)
 const LOGIN_MAX_FAILS = 5;         // failed sign-in attempts before lockout
@@ -476,6 +483,27 @@ function sanitizeInquiry(b) {
   };
 }
 
+/* ── Event Manager records (private business bookkeeping) ──
+ * Whitelisted fields only; numbers coerced to non-negative integers;
+ * date must be yyyy-mm-dd; status from a fixed set. */
+function sanitizeEmEvent(b) {
+  const num = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 ? n : 0; };
+  return {
+    id: cap(b.id, 40) || undefined,
+    client: cap(b.client, 120),
+    phone: cap(b.phone, 40),
+    email: cap(b.email, 200),
+    type: cap(b.type, 60),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? String(b.date) : '',
+    location: cap(b.location, 160),
+    guests: cap(b.guests, 40),
+    price: num(b.price),
+    advance: num(b.advance),
+    status: EM_STATUSES.includes(b.status) ? b.status : 'inquiry',
+    notes: cap(b.notes, 2000),
+  };
+}
+
 async function findKeyById(env, id) {
   return findKeyByPrefixAndId(env, PREFIX, id);
 }
@@ -764,6 +792,44 @@ export default {
         const body = await readJson(request);
         if (!body || !body.id) return json({ ok: false, error: 'bad_request' }, 400);
         const key = await findKeyByPrefixAndId(env, SUB_PREFIX, String(body.id));
+        if (key) await env.INQUIRIES.delete(key);
+        return json({ ok: true });
+      }
+
+      // ── event manager (admin) — private list of every booked/done event ────
+      if (request.method === 'GET' && path === '/api/em-events') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        return json({ ok: true, items: await listByPrefix(env, EM_PREFIX, 1000) });
+      }
+
+      if (request.method === 'POST' && path === '/api/em-events') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        const body = await readJson(request);
+        if (!body || !body.rec || typeof body.rec !== 'object') return json({ ok: false, error: 'bad_request' }, 400);
+        const rec = sanitizeEmEvent(body.rec);
+        if (!rec.client && !rec.date) return json({ ok: false, error: 'missing_fields', detail: 'A client name or an event date is required.' }, 400);
+        const now = Date.now();
+        let key = rec.id ? await findKeyByPrefixAndId(env, EM_PREFIX, rec.id) : null;
+        if (key) {
+          const old = JSON.parse(await env.INQUIRIES.get(key));
+          rec.id = old.id;
+          rec.createdAt = old.createdAt || now;
+        } else {
+          rec.id = newId();
+          rec.createdAt = now;
+          const rev = String(9999999999999 - now).padStart(13, '0');
+          key = EM_PREFIX + rev + ':' + rec.id;
+        }
+        rec.updatedAt = now;
+        await env.INQUIRIES.put(key, JSON.stringify(rec));
+        return json({ ok: true, id: rec.id, rec });
+      }
+
+      if (request.method === 'DELETE' && path === '/api/em-events') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        const body = await readJson(request);
+        if (!body || !body.id) return json({ ok: false, error: 'bad_request' }, 400);
+        const key = await findKeyByPrefixAndId(env, EM_PREFIX, String(body.id));
         if (key) await env.INQUIRIES.delete(key);
         return json({ ok: true });
       }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-v="20260930c">
+<html lang="en" data-v="20260930d">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,8 +13,8 @@
   <!-- NOTE: bump ?v= (and data-v above) on EVERY deploy that changes any
        file referenced here. Browsers long-cache /js/* and /css/* — the
        version query is what forces a fresh copy after each deploy. -->
-  <link rel="stylesheet" href="css/styles.css?v=20260930c" />
-  <link rel="stylesheet" href="css/admin.css?v=20260930c" />
+  <link rel="stylesheet" href="css/styles.css?v=20260930d" />
+  <link rel="stylesheet" href="css/admin.css?v=20260930d" />
 </head>
 <body class="admin-body">
 
@@ -137,6 +137,11 @@
           <span>Content</span>
           <em class="sb-badge" id="badge-content" style="display:none">•</em>
         </button>
+        <button class="sb-link" data-view="em" id="nav-em">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+          <span>Events Manager</span>
+          <em class="sb-badge" id="badge-em" style="display:none">0</em>
+        </button>
         <button class="sb-link" data-view="settings" id="nav-settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
           <span>Settings</span>
@@ -188,11 +193,73 @@
     <div class="drawer-body" id="drawer-body"></div>
   </aside>
 
-  <script src="js/config.js?v=20260930c"></script>
-  <script src="js/data.js?v=20260930c"></script>
-  <script src="js/site-overrides.js?v=20260930c"></script>
-  <script src="js/content.js?v=20260930c"></script>
-  <script src="js/store.js?v=20260930c"></script>
-  <script src="js/admin.js?v=20260930c"></script>
+  <!-- Event Manager add/edit modal -->
+  <div class="drawer-scrim" id="em-scrim"></div>
+  <div class="em-modal" id="em-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="em-modal-title">
+    <div class="drawer-head">
+      <h3 id="em-modal-title">Add event</h3>
+      <button class="icon-btn" id="em-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <div class="em-modal-body">
+      <div class="em-grid2">
+        <label class="cfield"><span class="clabel">Client name *</span>
+          <input class="form-input" id="em-f-client" maxlength="120" placeholder="e.g. Ato Daniel Bekele" /></label>
+        <label class="cfield"><span class="clabel">Phone</span>
+          <input class="form-input" id="em-f-phone" maxlength="40" placeholder="09… / +251…" /></label>
+      </div>
+      <div class="em-grid2">
+        <label class="cfield"><span class="clabel">Event type</span>
+          <select class="form-input" id="em-f-type">
+            <option>Wedding</option><option>Corporate</option><option>Government</option>
+            <option>Decoration</option><option>Social</option><option>Concert</option><option>Other</option>
+          </select></label>
+        <label class="cfield"><span class="clabel">Event date *</span>
+          <input class="form-input" id="em-f-date" type="date" /></label>
+      </div>
+      <div class="em-grid2">
+        <label class="cfield"><span class="clabel">Location</span>
+          <input class="form-input" id="em-f-location" maxlength="160" placeholder="Venue / city" /></label>
+        <label class="cfield"><span class="clabel">Guests</span>
+          <input class="form-input" id="em-f-guests" maxlength="40" placeholder="e.g. 300" /></label>
+      </div>
+      <div class="em-grid3">
+        <label class="cfield"><span class="clabel">Price (ETB)</span>
+          <input class="form-input" id="em-f-price" type="number" min="0" step="1" placeholder="0" /></label>
+        <label class="cfield"><span class="clabel">Advance paid (ETB)</span>
+          <input class="form-input" id="em-f-advance" type="number" min="0" step="1" placeholder="0" /></label>
+        <label class="cfield"><span class="clabel">Balance</span>
+          <input class="form-input" id="em-balance" readonly tabindex="-1" value="0" /></label>
+      </div>
+      <div class="em-grid2">
+        <label class="cfield"><span class="clabel">Status</span>
+          <select class="form-input" id="em-f-status">
+            <option value="inquiry">Inquiry</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="prep">In preparation</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select></label>
+        <label class="cfield"><span class="clabel">Email</span>
+          <input class="form-input" id="em-f-email" maxlength="200" placeholder="client@email.com" /></label>
+      </div>
+      <label class="cfield"><span class="clabel">Notes</span>
+        <textarea class="form-input" id="em-f-notes" rows="3" maxlength="2000" placeholder="Agreement details, special requests, remaining payments…"></textarea></label>
+    </div>
+    <div class="em-modal-foot">
+      <button class="mini-btn danger" id="em-delete" style="display:none">Delete</button>
+      <span class="em-foot-gap"></span>
+      <button class="mini-btn" id="em-cancel">Cancel</button>
+      <button class="mini-btn primary" id="em-save">Save event</button>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=20260930d"></script>
+  <script src="js/data.js?v=20260930d"></script>
+  <script src="js/site-overrides.js?v=20260930d"></script>
+  <script src="js/content.js?v=20260930d"></script>
+  <script src="js/store.js?v=20260930d"></script>
+  <script src="js/admin.js?v=20260930d"></script>
 </body>
 </html>
