@@ -1935,6 +1935,27 @@ body.dark .form-error {
 }
 body.dark .contact-map { border-color: var(--gray-700); }
 
+/* "Open in Google Maps" link under the map embed */
+.contact-map-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary-500);
+  background: var(--primary-50);
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.contact-map-link:hover { background: var(--primary-100); }
+body.dark .contact-map-link {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--primary-500);
+}
+body.dark .contact-map-link:hover { background: rgba(16, 185, 129, 0.15); }
+
 /* ══════════════════════════════════════════════════════════
    CONTACT FORM — WhatsApp secondary button & submit row
 ══════════════════════════════════════════════════════════ */

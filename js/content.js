@@ -454,7 +454,8 @@
         addressLocality: 'Addis Ababa',
         addressCountry: 'ET',
       },
-      geo: { '@type': 'GeoCoordinates', latitude: 8.9971, longitude: 38.7967 },
+      geo: { '@type': 'GeoCoordinates', latitude: 9.020284, longitude: 38.869465 },
+      hasMap: 'https://maps.app.goo.gl/BcCbqGoLpcCEfZpz7',
       openingHoursSpecification: {
         '@type': 'OpeningHoursSpecification',
         dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
