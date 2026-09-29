@@ -14,9 +14,20 @@
  *    DELETE /api/inquiry        admin: delete one         (Bearer token)
  *    GET    /api/subscribers    admin: list subscribers   (Bearer token)
  *    DELETE /api/subscriber     admin: delete one         (Bearer token)
+ *    GET    /api/notify-status  admin: email alert config (Bearer token)
+ *    POST   /api/notify-test    admin: send a test alert  (Bearer token)
  *
  *  Inquiries and newsletter subscribers are stored in Cloudflare KV
  *  (binding INQUIRIES) and appear in the admin dashboard at /admin.html.
+ *
+ *  EMAIL ALERTS: every new booking inquiry triggers an email to the
+ *  NOTIFY_EMAIL address (wrangler.jsonc vars) through the SEND_EMAIL
+ *  binding (Cloudflare Email Routing, sender NOTIFY_FROM). The alert is
+ *  sent with ctx.waitUntil AFTER the inquiry is safely stored — an email
+ *  failure is logged but NEVER blocks or fails the booking itself. Real
+ *  delivery requires Email Routing to be enabled for the zone and the
+ *  recipient to be a verified destination address; until then the test
+ *  button in the admin Settings tab reports the exact error.
  *  There is no demo/mock mode anywhere: when the API is unreachable the
  *  dashboard shows an explicit error instead of sample records.
  *
@@ -29,6 +40,8 @@
  *    TTL (sliding). Admin endpoints require `Authorization: Bearer`.
  * ═══════════════════════════════════════════════════════════════
  */
+import { EmailMessage } from 'cloudflare:email';
+
 'use strict';
 
 const PREFIX = 'inq:';      // keys look like: inq:<reverse-timestamp>:<id> → newest first
@@ -37,6 +50,7 @@ const SESS_PREFIX = 'sess:'; // admin sessions: sess:<token>
 const SESSION_TTL = 8 * 3600;      // 8 hours (seconds)
 const LOGIN_MAX_FAILS = 5;         // failed PIN attempts before lockout
 const LOGIN_LOCKOUT = 15 * 60;     // lockout duration (seconds)
+const ALERT_FROM_FALLBACK = 'notifications@akirmaevents.com';
 
 /**
  * Login brute-force guard — one Durable Object instance per client IP.
@@ -185,6 +199,110 @@ function newId() {
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
+/* ══ EMAIL ALERTS (new booking inquiry → NOTIFY_EMAIL) ═════════ */
+
+/** Header values must never contain raw CRLF or non-ASCII — encode both. */
+function utf8ToBase64(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function headerSafe(s) {
+  s = String(s || '').replace(/[\r\n\u2028\u2029]+/g, ' ').trim();
+  if (!/[^\x20-\x7E]/.test(s)) return s; // pure ASCII → as-is
+  // RFC 2047 encoded-word (UTF-8 base64) — handles Amharic names too
+  return '=?UTF-8?B?' + utf8ToBase64(s) + '?=';
+}
+
+/** Build a readable plain-text alert email (raw MIME). */
+function buildInquiryAlertEmail(rec, from, to) {
+  const when = new Date(rec.createdAt || Date.now()).toISOString();
+  const subject = 'New booking inquiry — ' + (rec.name || 'unnamed') +
+    (rec.event_type ? ' (' + rec.event_type + ')' : '');
+  const lines = [
+    'A new booking inquiry was just submitted through akdirmaevents.com.',
+    '',
+    '----------------------------------------',
+    'Name:        ' + (rec.name || '-'),
+    'Email:       ' + (rec.email || '-'),
+    'Phone:       ' + (rec.phone || '-'),
+    'Event type:  ' + (rec.event_type || '-'),
+    'Event date:  ' + (rec.event_date || '-'),
+    'Received:    ' + when,
+    '----------------------------------------',
+    '',
+    'Message:',
+    (rec.message || '(no message)'),
+    '',
+    '',
+    'Manage it in the admin dashboard: https://akirmaevents.com/admin.html',
+    'This is an automated notification — please reply to the customer directly.',
+  ];
+  return {
+    subject,
+    raw: [
+      'From: Akirma Events Website <' + from + '>',
+      'To: <' + to + '>',
+      'Subject: ' + headerSafe(subject),
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      'X-Website-Auto-Alert: booking-inquiry',
+      '',
+      lines.join('\r\n'),
+    ].join('\r\n'),
+  };
+}
+
+/** Send the notification. Never throws — returns {ok} so callers can log. */
+async function sendAlert(env, { subject, raw }) {
+  const from = env.NOTIFY_FROM || ALERT_FROM_FALLBACK;
+  const to = env.NOTIFY_EMAIL;
+  if (!env.SEND_EMAIL) return { ok: false, error: 'email_binding_missing' };
+  if (!to) return { ok: false, error: 'notify_email_not_configured' };
+  try {
+    await env.SEND_EMAIL.send(new EmailMessage(from, to, raw));
+    return { ok: true, to };
+  } catch (e) {
+    return { ok: false, error: 'send_failed', detail: String((e && e.message) || e) };
+  }
+}
+
+/** Fire-and-forget alert for a stored inquiry — logs, never throws. */
+async function notifyNewInquiry(env, rec) {
+  const mail = buildInquiryAlertEmail(rec, env.NOTIFY_FROM || ALERT_FROM_FALLBACK, env.NOTIFY_EMAIL || '');
+  const r = await sendAlert(env, mail);
+  if (r.ok) console.log('Booking alert sent to ' + r.to + ' (inquiry ' + rec.id + ')');
+  else console.warn('Booking alert not sent (' + r.error + (r.detail ? ': ' + r.detail : '') + ') for inquiry ' + rec.id);
+}
+
+function buildTestAlertEmail(from, to) {
+  const subject = 'Akirma Events — test booking alert';
+  const lines = [
+    'This is a test alert from your website booking system.',
+    '',
+    'If you can read this, email alerts are working: every new booking',
+    'inquiry submitted on akdirmaevents.com will now arrive in this inbox.',
+    '',
+    'Sent: ' + new Date().toISOString(),
+  ];
+  return {
+    subject,
+    raw: [
+      'From: Akirma Events Website <' + from + '>',
+      'To: <' + to + '>',
+      'Subject: ' + headerSafe(subject),
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      'X-Website-Auto-Alert: test',
+      '',
+      lines.join('\r\n'),
+    ].join('\r\n'),
+  };
+}
+
 function sanitizeInquiry(b) {
   // Accept both name styles: API style (name/email) and the contact-form's
   // EmailJS-style keys (from_name/from_email) — see js/app.js getContactParams().
@@ -253,7 +371,7 @@ async function subscriberExists(env, norm) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -291,6 +409,11 @@ export default {
           const rev = String(9999999999999 - rec.createdAt).padStart(13, '0');
           await env.INQUIRIES.put(PREFIX + rev + ':' + rec.id, JSON.stringify(rec));
         }
+        // Email alert AFTER the record is safe — off the response path so a
+        // slow/failed send can never delay or break the booking.
+        const alertP = notifyNewInquiry(env, rec); // never throws
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(alertP);
+        else alertP.catch(() => {});
         return json({ ok: true, id: rec.id });
       }
 
@@ -389,6 +512,31 @@ export default {
         const key = await findKeyByPrefixAndId(env, SUB_PREFIX, String(body.id));
         if (key) await env.INQUIRIES.delete(key);
         return json({ ok: true });
+      }
+
+      // ── email alert diagnostics (admin) ─────────────────
+      if (request.method === 'GET' && path === '/api/notify-status') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        const binding = !!env.SEND_EMAIL;
+        const hasTo = !!env.NOTIFY_EMAIL;
+        return json({
+          ok: true,
+          configured: binding && hasTo,
+          binding,
+          notifyEmail: env.NOTIFY_EMAIL || '',
+          from: env.NOTIFY_FROM || ALERT_FROM_FALLBACK,
+          hint: binding && hasTo ? '' :
+            (!binding ? 'SEND_EMAIL binding is not deployed — enable Email Routing for the domain in the Cloudflare dashboard, then redeploy.' : 'NOTIFY_EMAIL variable is not set in wrangler.jsonc.'),
+        });
+      }
+
+      if (request.method === 'POST' && path === '/api/notify-test') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        if (!env.SEND_EMAIL) return json({ ok: false, error: 'email_binding_missing', detail: 'The SEND_EMAIL binding is not deployed yet. Enable Email Routing for akdirmaevents.com in the Cloudflare dashboard (Email → Email Routing), then redeploy.' });
+        if (!env.NOTIFY_EMAIL) return json({ ok: false, error: 'notify_email_not_configured', detail: 'NOTIFY_EMAIL is not set in wrangler.jsonc.' });
+        const r = await sendAlert(env, buildTestAlertEmail(env.NOTIFY_FROM || ALERT_FROM_FALLBACK, env.NOTIFY_EMAIL));
+        if (r.ok) return json({ ok: true, to: r.to, detail: 'Test alert sent — check the inbox (allow a minute, and check spam).' });
+        return json({ ok: false, error: r.error, detail: r.detail || 'Sending failed. Check that Email Routing is enabled for the domain and that ' + env.NOTIFY_EMAIL + ' is a verified destination address (Email → Email Routing → Destination addresses).' });
       }
 
       return json({ ok: false, error: 'not_found' }, 404);

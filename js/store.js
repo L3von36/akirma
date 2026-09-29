@@ -154,5 +154,25 @@
     await api('/api/subscriber', { method: 'DELETE', body: JSON.stringify({ id }) });
   };
 
+  /* ── EMAIL ALERT diagnostics (Settings tab) ───────────── */
+
+  /** Alert configuration for the admin Settings card. */
+  store.getNotifyStatus = async function () {
+    return api('/api/notify-status');
+  };
+
+  /** Ask the Worker to send a test alert. Resolves the full result payload
+   *  ({ok:true,to,detail} or {ok:false,error,detail}) — a failed send is a
+   *  result to display, not an exception. */
+  store.sendNotifyTest = async function () {
+    const { res, data } = await apiOnce('/api/notify-test', { method: 'POST', body: '{}' });
+    if (!res.ok || !data) {
+      const err = new Error((data && data.error) || ('HTTP ' + res.status));
+      err.data = data;
+      throw err;
+    }
+    return data;
+  };
+
   window.AkirmaStore = store;
 })();

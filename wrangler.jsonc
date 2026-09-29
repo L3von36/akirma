@@ -7,11 +7,27 @@
 // worker.js serves the static site + a small booking-inquiry API
 // (POST /api/inquiry) backed by the KV namespace below. Inquiries appear
 // in the admin dashboard at /admin.html.
+//
+// EMAIL ALERTS: every new booking inquiry triggers an email to NOTIFY_EMAIL
+// via the SEND_EMAIL binding (Cloudflare Email Routing). The recipient must
+// be a verified destination address (Email → Email Routing → Destination
+// addresses) and Email Routing must be enabled for the zone — until then
+// sends fail gracefully and bookings are never affected.
 {
   "$schema": "https://json.schemastore.org/wrangler.jsonc",
   "name": "akirma",
   "main": "worker.js",
   "compatibility_date": "2026-09-26",
+  "vars": {
+    // Where booking alerts are sent (must be a verified destination address
+    // in Cloudflare Email Routing before real delivery works).
+    "NOTIFY_EMAIL": "info@akirma.com",
+    // Sender address — must live on a domain of this Cloudflare account.
+    "NOTIFY_FROM": "notifications@akirmaevents.com"
+  },
+  "send_email": [
+    { "name": "SEND_EMAIL" }
+  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS"

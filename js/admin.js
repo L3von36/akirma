@@ -450,6 +450,15 @@
             <div><div class="t">EmailJS (email delivery)</div>
             <div class="s">${emailJsOn ? 'Connected — forms send real email.' : 'Not connected — contact form falls back to WhatsApp.'}</div></div>
           </div>
+          <div class="conn-item">
+            <span class="conn-dot" id="notify-dot"></span>
+            <div><div class="t">Booking email alerts</div>
+            <div class="s" id="notify-text">Checking…</div>
+            <div style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem">
+              <button class="mini-btn" id="notify-test-btn">${ICONS.mail} Send test email</button>
+              <span class="s" id="notify-test-result"></span>
+            </div></div>
+          </div>
         </div>
       </div>
 
@@ -464,6 +473,42 @@
         <div class="setup-step"><span class="step-num">•</span><div><h4>This page is hidden from search engines</h4>
           <p><code>admin.html</code> has a noindex meta tag and is disallowed in <code>robots.txt</code>.</p></div></div>
       </div>`;
+
+    // Booking email alerts — status is fetched live (admin-gated endpoint).
+    (async () => {
+      const dot = $('notify-dot'), txt = $('notify-text');
+      if (!dot || !txt) return;
+      try {
+        const st = await S.getNotifyStatus();
+        dot.classList.add(st.configured ? 'on' : 'off');
+        txt.innerHTML = st.configured
+          ? 'Active — every new booking inquiry is emailed to <code>' + esc(st.notifyEmail) + '</code> from <code>' + esc(st.from) + '</code>. Use the test button to confirm delivery.'
+          : 'Not fully configured — ' + esc(st.hint || 'see the handover guide.');
+      } catch (e) {
+        dot.classList.add('off');
+        txt.textContent = 'Status unknown — could not reach the site API.';
+      }
+    })();
+
+    const tbtn = $('notify-test-btn');
+    if (tbtn) tbtn.addEventListener('click', async () => {
+      const out = $('notify-test-result');
+      tbtn.disabled = true;
+      if (out) out.textContent = 'Sending…';
+      try {
+        const r = await S.sendNotifyTest();
+        if (out) {
+          out.textContent = r.ok
+            ? ('Sent to ' + r.to + ' — ' + (r.detail || 'check the inbox.'))
+            : ('Failed: ' + (r.detail || r.error || 'send failed'));
+          out.style.color = r.ok ? '' : '#b4552d';
+        }
+      } catch (e) {
+        if (out) { out.textContent = 'Failed: ' + ((e && e.message) || 'network error'); out.style.color = '#b4552d'; }
+      } finally {
+        tbtn.disabled = false;
+      }
+    });
   }
 
   /* ══ CONTENT EDITOR (landing page) ══════════════════════
