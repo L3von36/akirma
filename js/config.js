@@ -25,33 +25,17 @@
  *      inquiry is ever lost. The newsletter falls back to the visitor's
  *      mail app addressed to EMAIL_TO.
  *
- *  ── HOW TO ACTIVATE THE ADMIN DASHBOARD (Firebase — free plan) ──
- *  The dashboard at /admin.html shows inquiries & subscribers in real
- *  time once Firebase is connected (this is also what stores them).
- *  1. Create a free project at https://console.firebase.google.com
- *  2. Build → Firestore Database → Create database (production mode)
- *  3. Build → Authentication → Sign-in method → enable **Email/Password**
- *     → Users → Add user (e.g. admin@akirma.com + a strong password)
- *  4. Project settings (gear icon) → General → Your apps → Web app (</>)
- *     → copy the firebaseConfig values into FIREBASE below
- *  5. Firestore → Rules → paste:
- *
- *      rules_version = '2';
- *      service cloud.firestore {
- *        match /databases/{database}/documents {
- *          match /inquiries/{doc} {
- *            allow create: if true;                      // visitors submit
- *            allow read, update, delete: if request.auth != null;  // admin only
- *          }
- *          match /subscribers/{doc} {
- *            allow create: if true;
- *            allow read, update, delete: if request.auth != null;
- *          }
- *        }
- *      }
- *
- *  6. Publish rules, then sign in at /admin.html with the email/password
- *     from step 3. Until configured, the dashboard runs in DEMO mode.
+ *  ── HOW THE ADMIN DASHBOARD WORKS (no third-party service) ──
+ *  The dashboard at /admin.html is powered by the site's own API
+ *  (Cloudflare Worker + KV, see worker.js):
+ *  - Booking inquiries POST to /api/inquiry from the contact form;
+ *    newsletter signups POST to /api/subscriber from the footer form.
+ *  - Sign-in at /admin.html uses the admin PIN, verified server-side
+ *    against the Worker secret ADMIN_PIN:
+ *        npx wrangler secret put ADMIN_PIN
+ *    (the PIN is never stored in this public bundle).
+ *  - Successful sign-in returns a short-lived session token; admin
+ *    data endpoints require it as a Bearer token.
  * ═══════════════════════════════════════════════════════════════
  */
 window.AKIRMA_CONFIG = {
@@ -90,18 +74,5 @@ window.AKIRMA_CONFIG = {
     // Cloudflare Worker secret ADMIN_PIN (npx wrangler secret put ADMIN_PIN)
     // and is verified server-side by POST /api/admin/login — nothing secret
     // ships in this public bundle.
-    // Where new inquiries/subscribers are stored when Firebase is on.
-    INQUIRIES_COLLECTION:  'inquiries',
-    SUBSCRIBERS_COLLECTION: 'subscribers',
-  },
-
-  // ── Firebase (activates the admin dashboard data) ─────────
-  FIREBASE: {
-    apiKey:            'YOUR_API_KEY',
-    authDomain:        'YOUR_PROJECT.firebaseapp.com',
-    projectId:         'YOUR_PROJECT_ID',
-    storageBucket:     'YOUR_PROJECT.appspot.com',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    appId:             'YOUR_APP_ID',
   },
 };

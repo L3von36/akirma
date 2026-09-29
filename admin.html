@@ -24,26 +24,13 @@
       <h1 class="login-title">Akirma Admin</h1>
       <p class="login-sub" id="login-sub">Sign in to manage inquiries &amp; subscribers.</p>
 
-      <!-- Firebase email/password -->
-      <form id="login-form-fb" class="login-form" style="display:none" autocomplete="on">
-        <div class="form-field">
-          <label for="admin-email">Email</label>
-          <input class="form-input" type="email" id="admin-email" placeholder="admin@akirma.com" required autocomplete="username" />
-        </div>
-        <div class="form-field">
-          <label for="admin-pass">Password</label>
-          <input class="form-input" type="password" id="admin-pass" placeholder="••••••••" required autocomplete="current-password" />
-        </div>
-        <button type="submit" class="btn btn-primary btn-lg login-btn" id="admin-login-btn">Sign In</button>
-      </form>
-
-      <!-- PIN sign-in (server mode) / preview (no site API) -->
-      <form id="login-form-demo" class="login-form" style="display:none" autocomplete="off">
+      <!-- PIN sign-in (verified server-side by the site API) -->
+      <form id="login-form" class="login-form" style="display:none" autocomplete="off">
         <div class="form-field">
           <label for="admin-pin">Admin PIN</label>
           <input class="form-input" type="password" id="admin-pin" inputmode="numeric" placeholder="••••" required />
         </div>
-        <button type="submit" class="btn btn-primary btn-lg login-btn" id="demo-login-btn">Sign In</button>
+        <button type="submit" class="btn btn-primary btn-lg login-btn" id="login-btn">Sign In</button>
         <p class="login-hint">Your PIN is verified on the server — it is never stored in this page's code. Sessions last 8 hours and sign out clears them.</p>
       </form>
 
@@ -88,7 +75,7 @@
         </button>
       </nav>
       <div class="sb-footer">
-        <div class="mode-chip" id="mode-chip">DEMO</div>
+        <div class="mode-chip live" id="mode-chip">LIVE · SITE API</div>
         <button class="sb-link sb-logout" id="btn-logout">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
           <span>Log out</span>

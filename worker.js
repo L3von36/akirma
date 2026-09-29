@@ -5,15 +5,20 @@
  *  Serves the static site (assets) plus a small booking-inquiry API:
  *
  *    POST   /api/inquiry        visitors submit the contact/booking form
+ *    POST   /api/subscriber     visitors join the newsletter
  *    GET    /api/health         uptime check
  *    POST   /api/admin/login    admin: exchange PIN for a session token
  *    POST   /api/admin/logout   admin: invalidate the current session
- *    GET    /api/inquiries      admin: list inquiries   (Bearer token)
- *    PATCH  /api/inquiry        admin: update status    (Bearer token)
- *    DELETE /api/inquiry        admin: delete one       (Bearer token)
+ *    GET    /api/inquiries      admin: list inquiries     (Bearer token)
+ *    PATCH  /api/inquiry        admin: update status      (Bearer token)
+ *    DELETE /api/inquiry        admin: delete one         (Bearer token)
+ *    GET    /api/subscribers    admin: list subscribers   (Bearer token)
+ *    DELETE /api/subscriber     admin: delete one         (Bearer token)
  *
- *  Inquiries are stored in Cloudflare KV (binding INQUIRIES) and appear
- *  in the admin dashboard at /admin.html.
+ *  Inquiries and newsletter subscribers are stored in Cloudflare KV
+ *  (binding INQUIRIES) and appear in the admin dashboard at /admin.html.
+ *  There is no demo/mock mode anywhere: when the API is unreachable the
+ *  dashboard shows an explicit error instead of sample records.
  *
  *  SECURITY MODEL (no secrets in the client bundle):
  *  - The PIN lives ONLY in the worker secret ADMIN_PIN
@@ -27,6 +32,7 @@
 'use strict';
 
 const PREFIX = 'inq:';      // keys look like: inq:<reverse-timestamp>:<id> → newest first
+const SUB_PREFIX = 'sub:';   // newsletter subscribers: sub:<reverse-timestamp>:<id>
 const SESS_PREFIX = 'sess:'; // admin sessions: sess:<token>
 const SESSION_TTL = 8 * 3600;      // 8 hours (seconds)
 const LOGIN_MAX_FAILS = 5;         // failed PIN attempts before lockout
@@ -161,12 +167,14 @@ function bearerToken(request) {
   return m ? m[1] : '';
 }
 
-/** Best-effort per-IP damping: max 12 submissions per hour. */
-async function rateLimited(env, request) {
+/** Best-effort per-IP damping: max 12 submissions per hour.
+ *  `kind` separates buckets so the contact form and the newsletter
+ *  never block each other. */
+async function rateLimited(env, request, kind = 'inq') {
   if (!env.INQUIRIES) return false;
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const bucket = Math.floor(Date.now() / 3600000);
-  const key = `rl:${bucket}:${ip}`;
+  const key = `rl${kind === 'inq' ? '' : kind}:${bucket}:${ip}`;
   const cur = parseInt((await env.INQUIRIES.get(key)) || '0', 10);
   if (cur >= 12) return true;
   await env.INQUIRIES.put(key, String(cur + 1), { expirationTtl: 7200 });
@@ -191,11 +199,15 @@ function sanitizeInquiry(b) {
 }
 
 async function findKeyById(env, id) {
+  return findKeyByPrefixAndId(env, PREFIX, id);
+}
+
+async function findKeyByPrefixAndId(env, prefix, id) {
   if (!env.INQUIRIES || !id) return null;
   const suffix = ':' + id;
   let cursor;
   do {
-    const page = await env.INQUIRIES.list({ prefix: PREFIX, cursor, limit: 100 });
+    const page = await env.INQUIRIES.list({ prefix, cursor, limit: 100 });
     for (const k of page.keys) {
       if (k.name.endsWith(suffix)) return k.name;
     }
@@ -205,11 +217,16 @@ async function findKeyById(env, id) {
 }
 
 async function listInquiries(env, max = 300) {
+  return listByPrefix(env, PREFIX, max);
+}
+
+/** Generic newest-first KV listing under a key prefix. */
+async function listByPrefix(env, prefix, max) {
   const items = [];
   if (!env.INQUIRIES) return items;
   let cursor;
   do {
-    const page = await env.INQUIRIES.list({ prefix: PREFIX, cursor, limit: 100 });
+    const page = await env.INQUIRIES.list({ prefix, cursor, limit: 100 });
     for (const k of page.keys) {
       if (items.length >= max) break;
       const v = await env.INQUIRIES.get(k.name);
@@ -220,6 +237,19 @@ async function listInquiries(env, max = 300) {
   } while (cursor);
   items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return items;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** True when a subscriber with the same normalized email already exists. */
+async function subscriberExists(env, norm) {
+  const page = await env.INQUIRIES.list({ prefix: SUB_PREFIX, limit: 1000 });
+  for (const k of page.keys) {
+    const v = await env.INQUIRIES.get(k.name);
+    if (!v) continue;
+    try { if (JSON.parse(v).norm === norm) return true; } catch (e) { /* skip corrupt */ }
+  }
+  return false;
 }
 
 export default {
@@ -239,7 +269,7 @@ export default {
       }
 
       if (request.method === 'POST' && path === '/api/inquiry') {
-        if (await rateLimited(env, request)) return json({ ok: false, error: 'rate_limited' }, 429);
+        if (await rateLimited(env, request, 'inq')) return json({ ok: false, error: 'rate_limited' }, 429);
         const body = await readJson(request);
         if (body === null) return json({ ok: false, error: 'payload_too_large' }, 413);
         if (!body || typeof body !== 'object') return json({ ok: false, error: 'bad_json' }, 400);
@@ -260,6 +290,29 @@ export default {
         if (env.INQUIRIES) {
           const rev = String(9999999999999 - rec.createdAt).padStart(13, '0');
           await env.INQUIRIES.put(PREFIX + rev + ':' + rec.id, JSON.stringify(rec));
+        }
+        return json({ ok: true, id: rec.id });
+      }
+
+      // ── newsletter signup (public) ──────────────────────
+      if (request.method === 'POST' && path === '/api/subscriber') {
+        if (await rateLimited(env, request, 'sub')) return json({ ok: false, error: 'rate_limited' }, 429);
+        const body = await readJson(request, 1024);
+        if (!body || typeof body.email !== 'string') return json({ ok: false, error: 'bad_request' }, 400);
+        const email = cap(body.email, 200);
+        if (!EMAIL_RE.test(email)) return json({ ok: false, error: 'invalid_email' }, 400);
+        const norm = email.toLowerCase();
+        if (await subscriberExists(env, norm)) return json({ ok: true, duplicate: true }); // idempotent success
+        const rec = {
+          id: newId(),
+          email,
+          norm,
+          createdAt: Date.now(),
+          source: cap(body.source, 40) || 'newsletter_footer',
+        };
+        if (env.INQUIRIES) {
+          const rev = String(9999999999999 - rec.createdAt).padStart(13, '0');
+          await env.INQUIRIES.put(SUB_PREFIX + rev + ':' + rec.id, JSON.stringify(rec));
         }
         return json({ ok: true, id: rec.id });
       }
@@ -320,6 +373,20 @@ export default {
         const body = await readJson(request);
         if (!body || !body.id) return json({ ok: false, error: 'bad_request' }, 400);
         const key = await findKeyById(env, String(body.id));
+        if (key) await env.INQUIRIES.delete(key);
+        return json({ ok: true });
+      }
+
+      if (request.method === 'GET' && path === '/api/subscribers') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        return json({ ok: true, items: await listByPrefix(env, SUB_PREFIX, 1000) });
+      }
+
+      if (request.method === 'DELETE' && path === '/api/subscriber') {
+        if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);
+        const body = await readJson(request);
+        if (!body || !body.id) return json({ ok: false, error: 'bad_request' }, 400);
+        const key = await findKeyByPrefixAndId(env, SUB_PREFIX, String(body.id));
         if (key) await env.INQUIRIES.delete(key);
         return json({ ok: true });
       }

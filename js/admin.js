@@ -2,11 +2,10 @@
  * AKIRMA EVENTS - js/admin.js
  * Admin dashboard logic. Requires config.js + store.js.
  *
- * Three modes (auto-detected from js/config.js):
- *  - firebase : sign-in with Firebase Auth email/password, data from Firestore
- *  - server   : PIN verified server-side (POST /api/admin/login → Bearer
- *               session token), live data from the Worker KV
- *  - demo     : sample data in localStorage (only when no site API exists)
+ * Single live mode: data comes from the site's own API (Cloudflare
+ * Worker + KV). Sign-in is a PIN verified server-side (POST
+ * /api/admin/login → Bearer session token). If the API is unreachable
+ * the dashboard shows an explicit error — never sample data.
  *
  * All admin UI text is English-only (back-office tool).
  */
@@ -15,7 +14,6 @@
 
   const S = window.AkirmaStore;
   const cfg = window.AKIRMA_CONFIG || {};
-  const fbReady = S && S.isConfigured();
 
   /* ── STATE ── */
   const state = {
@@ -69,33 +67,23 @@
   function showLogin() {
     $('admin-login').style.display = 'flex';
     $('admin-app').style.display = 'none';
-    $('login-form-fb').style.display = fbReady ? 'flex' : 'none';
-    $('login-form-demo').style.display = fbReady ? 'none' : 'flex';
-    $('login-sub').textContent = fbReady
-      ? 'Sign in with your admin account to manage inquiries & subscribers.'
-      : (S.mode === 'server' ? 'Enter your admin PIN to manage real booking inquiries from the website.' : 'Preview the dashboard with sample data.');
+    $('login-form').style.display = 'flex';
+    $('login-sub').textContent = 'Enter your admin PIN to manage real booking inquiries & subscribers from the website.';
   }
   function showApp() {
     $('admin-login').style.display = 'none';
     $('admin-app').style.display = 'flex';
-    $('mode-chip').textContent = fbReady ? 'LIVE · FIREBASE' : (S.mode === 'server' ? 'LIVE · SITE API' : 'DEMO DATA');
-    $('mode-chip').classList.toggle('live', fbReady || S.mode === 'server');
+    $('mode-chip').textContent = 'LIVE · SITE API';
+    $('mode-chip').classList.add('live');
     updateContentBadge();
     refreshData();
   }
 
   async function boot() {
-    if (!fbReady) {
-      // Server mode: a live session token (if any) was restored from
-      // sessionStorage by store.js — verify it is still fresh.
-      if (S.mode === 'server' ? S.adminSessionActive() : sessionStorage.getItem('akirma_admin_ok') === '1') showApp();
-      else showLogin();
-      return;
-    }
-    // Firebase: wait for auth state
-    $('login-form-fb').style.display = 'flex';
-    $('login-form-demo').style.display = 'none';
-    S.onAuth((user) => { if (user) showApp(); else showLogin(); });
+    // A live session token (if any) was restored from sessionStorage by
+    // store.js — it is validated on the first API call anyway.
+    if (S.adminSessionActive()) showApp();
+    else showLogin();
   }
 
   function loginError(msg) {
@@ -104,37 +92,14 @@
     el.style.display = 'block';
   }
 
-  $('login-form-fb').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    $('login-error').style.display = 'none';
-    const btn = $('admin-login-btn');
-    btn.disabled = true; btn.textContent = 'Signing in…';
-    try {
-      await S.signIn($('admin-email').value.trim(), $('admin-pass').value);
-      // onAuth callback flips the view
-    } catch (err) {
-      loginError(err && err.code === 'auth/invalid-credential'
-        ? 'Wrong email or password.'
-        : 'Sign-in failed: ' + (err.message || 'unknown error'));
-    } finally {
-      btn.disabled = false; btn.textContent = 'Sign In';
-    }
-  });
-
-  $('login-form-demo').addEventListener('submit', async (e) => {
+  $('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('login-error').style.display = 'none';
     const pin = ($('admin-pin').value || '').trim();
-    const btn = $('demo-login-btn');
+    const btn = $('login-btn');
     btn.disabled = true; btn.textContent = 'Verifying…';
     try {
-      if (S.mode === 'server') {
-        await S.adminLogin(pin); // server-side PIN check → session token
-        sessionStorage.setItem('akirma_admin_ok', '1');
-      } else {
-        // Pure preview mode (no site API): sample data only, nothing sensitive.
-        sessionStorage.setItem('akirma_admin_ok', '1');
-      }
+      await S.adminLogin(pin); // server-side PIN check → session token
       showApp();
     } catch (err) {
       const d = (err && err.data) || {};
@@ -154,15 +119,12 @@
   });
 
   $('btn-logout').addEventListener('click', async () => {
-    if (S.mode === 'server') await S.adminLogout();
-    else await S.signOut();
-    sessionStorage.removeItem('akirma_admin_ok');
+    await S.adminLogout();
     showLogin();
   });
 
   // Session died mid-use (expired server-side) → back to login with notice.
   window.addEventListener('akirma:admin-401', () => {
-    sessionStorage.removeItem('akirma_admin_ok');
     showLogin();
     loginError('Your session has expired. Please sign in again.');
   });
@@ -244,7 +206,9 @@
   function render() {
     const c = $('admin-content');
     if (state.loadError) {
-      c.innerHTML = `<div class="panel"><div class="empty-state">${ICONS.inbox}<p><strong>Could not load data.</strong><br>${esc(state.loadError)}</p><p style="margin-top:.5rem;font-size:.8rem">If this says "Missing or insufficient permissions", check the Firestore rules from the setup guide in Settings.</p></div></div>`;
+      c.innerHTML = `<div class="panel"><div class="empty-state">${ICONS.inbox}<p><strong>Could not load data from the site API.</strong><br>${esc(state.loadError)}</p><p style="margin-top:.5rem;font-size:.8rem">Check your connection and try again. If it persists, the Worker deployment may be down — no sample data is shown.</p><p style="margin-top:.75rem"><button class="mini-btn primary" id="retry-load">Retry</button></p></div></div>`;
+      const r = $('retry-load');
+      if (r) r.addEventListener('click', () => { state.loadError = null; refreshData(); });
       return;
     }
     if (state.view === 'overview') return renderOverview(c);
@@ -349,7 +313,7 @@
         </div>
         <div class="inquiry-list">
           ${list.length ? list.map(rowHTML).join('')
-            : `<div class="empty-state">${ICONS.inbox}<p>No inquiries here${fbReady ? '' : ' (demo data only shows in Demo mode)'}.</p></div>`}
+            : `<div class="empty-state">${ICONS.inbox}<p>No inquiries here yet — new bookings from the website's contact form appear instantly.</p></div>`}
         </div>
       </div>`;
 
@@ -398,11 +362,16 @@
     $('drawer-body').querySelectorAll('[data-act]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const act = btn.dataset.act;
-        if (act === 'delete') {
-          if (!confirm('Delete this inquiry permanently?')) return;
-          await S.deleteInquiry(id);
-        } else {
-          await S.updateInquiry(id, { status: act });
+        try {
+          if (act === 'delete') {
+            if (!confirm('Delete this inquiry permanently?')) return;
+            await S.deleteInquiry(id);
+          } else {
+            await S.updateInquiry(id, { status: act });
+          }
+        } catch (err) {
+          alert('Action failed: ' + ((err && err.message) || 'network error') + '. The record was not changed.');
+          return;
         }
         closeDrawer();
         refreshData();
@@ -453,7 +422,12 @@
       downloadCSV('akirma-subscribers.csv', state.subscribers, ['email', 'createdAt']));
     c.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
       if (!confirm('Remove this subscriber?')) return;
-      await S.deleteSubscriber(b.dataset.del);
+      try {
+        await S.deleteSubscriber(b.dataset.del);
+      } catch (err) {
+        alert('Delete failed: ' + ((err && err.message) || 'network error'));
+        return;
+      }
       refreshData();
     }));
   }
@@ -461,14 +435,15 @@
   /* ── SETTINGS ── */
   function renderSettings(c) {
     const emailJsOn = cfg.EMAILJS && !/^YOUR_/.test(cfg.EMAILJS.SERVICE_ID || 'YOUR_');
+    const apiOk = !state.loadError;
     c.innerHTML = `
       <div class="panel">
         <div class="panel-head"><h3>Integration Status</h3></div>
         <div class="conn-grid">
           <div class="conn-item">
-            <span class="conn-dot ${fbReady ? 'on' : 'off'}"></span>
-            <div><div class="t">Firebase (dashboard data)</div>
-            <div class="s">${fbReady ? 'Connected — inquiries & subscribers are stored in Firestore.' : (S.mode === 'server' ? 'Connected — booking inquiries sent from the website are stored securely in your dashboard (site API).' : 'Not connected — running in demo mode.')}</div></div>
+            <span class="conn-dot ${apiOk ? 'on' : 'off'}"></span>
+            <div><div class="t">Site API (bookings &amp; subscribers)</div>
+            <div class="s">${apiOk ? 'Connected — booking inquiries and newsletter signups from the website are stored securely in Cloudflare KV and appear in this dashboard.' : 'Not reachable — the dashboard could not load data from the Worker API. Retry from the Overview screen.'}</div></div>
           </div>
           <div class="conn-item">
             <span class="conn-dot ${emailJsOn ? 'on' : 'off'}"></span>
@@ -478,42 +453,14 @@
         </div>
       </div>
 
-      ${fbReady ? '' : `
-      <div class="panel">
-        <div class="panel-head"><h3>Connect Firebase — Step by Step</h3></div>
-        <div class="setup-step"><span class="step-num">1</span><div><h4>Create a Firebase project</h4>
-          <p>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a>, click <code>Add project</code> and follow the wizard (Analytics optional).</p></div></div>
-        <div class="setup-step"><span class="step-num">2</span><div><h4>Create the Firestore database</h4>
-          <p>Build &rarr; <code>Firestore Database</code> &rarr; Create database (choose production mode, nearest region).</p></div></div>
-        <div class="setup-step"><span class="step-num">3</span><div><h4>Create the admin user</h4>
-          <p>Build &rarr; <code>Authentication</code> &rarr; Sign-in method &rarr; enable <code>Email/Password</code>. Then Users &rarr; Add user — e.g. <code>admin@akirma.com</code> with a strong password. Use these to sign in on this page.</p></div></div>
-        <div class="setup-step"><span class="step-num">4</span><div><h4>Copy the web app config</h4>
-          <p>Project settings (gear) &rarr; General &rarr; Your apps &rarr; Web app (<code>&lt;/&gt;</code>) &rarr; copy the <code>firebaseConfig</code> values into <code>js/config.js &rarr; FIREBASE</code>.</p></div></div>
-        <div class="setup-step"><span class="step-num">5</span><div><h4>Paste the security rules</h4>
-          <p>Firestore &rarr; Rules &rarr; paste the rules printed at the top of <code>js/config.js</code> &rarr; Publish. Visitors can only <em>create</em> inquiries; only your signed-in admin can read or manage them.</p>
-          <pre>rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /inquiries/{doc} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
-    match /subscribers/{doc} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
-  }
-}</pre></div></div>
-        <div class="setup-step"><span class="step-num">6</span><div><h4>Redeploy & sign in</h4>
-          <p>Push the updated <code>js/config.js</code> live, open <code>/admin.html</code>, sign in with the email/password from step 3 — the dashboard switches from DEMO to LIVE automatically.</p></div></div>
-      </div>`}
-
       <div class="panel">
         <div class="panel-head"><h3>Security Notes</h3></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>How access is protected</h4>
-          <p><strong>Live mode (site API):</strong> your PIN is verified server-side by the Cloudflare Worker against the <code>ADMIN_PIN</code> secret — it never ships in any JavaScript bundle. Successful sign-in returns a random session token (8 h sliding expiry, stored only for the current tab) that authorizes admin API calls. Failed attempts are rate-limited (5 tries → 15 min lockout). To change the PIN run: <code>npx wrangler secret put ADMIN_PIN</code>.</p></div></div>
+          <p>Your PIN is verified server-side by the Cloudflare Worker against the <code>ADMIN_PIN</code> secret — it never ships in any JavaScript bundle. Successful sign-in returns a random session token (8 h sliding expiry, stored only for the current tab) that authorizes admin API calls. Failed attempts are rate-limited (5 tries → 15 min lockout). To change the PIN run: <code>npx wrangler secret put ADMIN_PIN</code>.</p></div></div>
+        <div class="setup-step"><span class="step-num">•</span><div><h4>Real data only</h4>
+          <p>Every record you see here was submitted through the live website — there is no demo or sample mode. If the API cannot be reached, the dashboard shows an explicit error instead of fake data.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>Privacy</h4>
-          <p>Inquiries contain personal data (names, phones, emails). Access is limited to the admin account; export CSVs only when needed and delete stale records.</p></div></div>
+          <p>Inquiries contain personal data (names, phones, emails). Access is limited to holders of the admin PIN; export CSVs only when needed and delete stale records.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>This page is hidden from search engines</h4>
           <p><code>admin.html</code> has a noindex meta tag and is disallowed in <code>robots.txt</code>.</p></div></div>
       </div>`;
