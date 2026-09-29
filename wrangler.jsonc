@@ -21,7 +21,10 @@
   "vars": {
     // Where booking alerts are sent (must be a verified destination address
     // in Cloudflare Email Routing before real delivery works).
-    "NOTIFY_EMAIL": "info@akirma.com",
+    // akirmaevents24@gmail.com is verified. To move alerts to info@akirma.com,
+    // click the verification link Cloudflare emailed to that inbox, then set
+    // NOTIFY_EMAIL back to "info@akirma.com".
+    "NOTIFY_EMAIL": "akirmaevents24@gmail.com",
     // Sender address — must live on a domain of this Cloudflare account.
     "NOTIFY_FROM": "notifications@akirmaevents.com"
   },
