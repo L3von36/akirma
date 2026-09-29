@@ -86,9 +86,10 @@ window.AKIRMA_CONFIG = {
 
   // ── Admin dashboard (/admin.html) ─────────────────────────
   ADMIN: {
-    // PIN only guards DEMO mode preview. Real security comes from
-    // Firebase Authentication once FIREBASE below is configured.
-    DEMO_PIN: '2519',
+    // SECURITY: the admin PIN is NOT stored here. It lives only in the
+    // Cloudflare Worker secret ADMIN_PIN (npx wrangler secret put ADMIN_PIN)
+    // and is verified server-side by POST /api/admin/login — nothing secret
+    // ships in this public bundle.
     // Where new inquiries/subscribers are stored when Firebase is on.
     INQUIRIES_COLLECTION:  'inquiries',
     SUBSCRIBERS_COLLECTION: 'subscribers',

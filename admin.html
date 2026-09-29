@@ -37,14 +37,14 @@
         <button type="submit" class="btn btn-primary btn-lg login-btn" id="admin-login-btn">Sign In</button>
       </form>
 
-      <!-- Demo PIN -->
+      <!-- PIN sign-in (server mode) / preview (no site API) -->
       <form id="login-form-demo" class="login-form" style="display:none" autocomplete="off">
         <div class="form-field">
-          <label for="admin-pin">Demo PIN</label>
+          <label for="admin-pin">Admin PIN</label>
           <input class="form-input" type="password" id="admin-pin" inputmode="numeric" placeholder="••••" required />
         </div>
-        <button type="submit" class="btn btn-primary btn-lg login-btn">Enter Demo Mode</button>
-        <p class="login-hint">Demo mode shows sample data so you can explore the dashboard. Connect Firebase (see Settings after entering) to receive real inquiries.</p>
+        <button type="submit" class="btn btn-primary btn-lg login-btn" id="demo-login-btn">Sign In</button>
+        <p class="login-hint">Your PIN is verified on the server — it is never stored in this page's code. Sessions last 8 hours and sign out clears them.</p>
       </form>
 
       <p class="login-error" id="login-error" style="display:none"></p>

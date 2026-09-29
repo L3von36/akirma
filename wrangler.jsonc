@@ -21,5 +21,19 @@
       "binding": "INQUIRIES",
       "id": "1e84a2f8bb124ac184b13303553011c5"
     }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LOGIN_GUARD",
+        "class_name": "LoginGuard"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["LoginGuard"]
+    }
   ]
 }

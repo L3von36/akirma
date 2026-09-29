@@ -26,28 +26,63 @@
     fb.apiKey && !/^YOUR_/.test(fb.apiKey) &&
     fb.projectId && !/^YOUR_/.test(fb.projectId);
 
-  /* ── SITE API mode (Cloudflare Worker + KV, see worker.js) ── */
+  /* ── SITE API mode (Cloudflare Worker + KV, see worker.js) ──
+   * Auth = session token from POST /api/admin/login (Bearer). The PIN is
+   * never stored client-side; only the short-lived server token is. */
   const SERVER = {
-    pin: (function () {
-      try { return sessionStorage.getItem('akirma_admin_pin') || ''; } catch (e) { return ''; }
+    token: (function () {
+      try { return sessionStorage.getItem('akirma_admin_token') || ''; } catch (e) { return ''; }
     })(),
+    expiresAt: (function () {
+      try { return parseInt(sessionStorage.getItem('akirma_admin_exp') || '0', 10) || 0; } catch (e) { return 0; }
+    })(),
+    loginAt: 0,
     available: !!cfg.SERVER_API,
   };
   const useServer = () => !isConfigured() && SERVER.available;
 
-  /** Small fetch wrapper for the site API. Throws on any failure. */
-  async function api(path, opts = {}) {
+  /** Small fetch wrapper for the site API. Throws on any failure.
+   *  Sends the session token when we have one; opts.public skips it
+   *  (login itself). A 401 with a brand-new session is retried once —
+   *  KV session writes can take a few seconds to reach another colo —
+   *  then the dead token is cleared and the dashboard is notified. */
+  async function apiOnce(path, opts) {
     const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-    if (SERVER.pin) headers['X-Admin-PIN'] = SERVER.pin;
+    if (SERVER.token && !opts.public) headers['Authorization'] = 'Bearer ' + SERVER.token;
     const res = await fetch(path, Object.assign({}, opts, { headers }));
     let data = null;
     try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { res, data };
+  }
+
+  async function api(path, opts = {}) {
+    let { res, data } = await apiOnce(path, opts);
+    if (res.status === 401 && !opts.public && SERVER.token &&
+        SERVER.loginAt && (Date.now() - SERVER.loginAt) < 90000) {
+      await new Promise(r => setTimeout(r, 2000)); // cover KV propagation lag
+      ({ res, data } = await apiOnce(path, opts));
+    }
+    if (res.status === 401 && !opts.public) clearSession(true);
     if (!res.ok || !data || data.ok !== true) {
       const err = new Error((data && data.error) || ('HTTP ' + res.status));
       err.status = res && res.status;
+      err.data = data;
       throw err;
     }
     return data;
+  }
+
+  function clearSession(expired) {
+    SERVER.token = '';
+    SERVER.expiresAt = 0;
+    try {
+      sessionStorage.removeItem('akirma_admin_token');
+      sessionStorage.removeItem('akirma_admin_exp');
+      sessionStorage.removeItem('akirma_admin_ok');
+    } catch (e) { /* ignore */ }
+    if (expired) {
+      try { window.dispatchEvent(new CustomEvent('akirma:admin-401')); } catch (e) { /* ignore */ }
+    }
   }
 
   let ready = false;        // firebase loaded & initialized
@@ -130,10 +165,32 @@
     init, isConfigured,
   };
 
-  /** Admin dashboard: remember the PIN for site-API calls (server mode). */
-  store.setAdminPin = function (pin) {
-    SERVER.pin = String(pin || '');
-    try { sessionStorage.setItem('akirma_admin_pin', SERVER.pin); } catch (e) { /* ignore */ }
+  /** Admin dashboard: exchange the PIN for a server-side session token.
+   *  The PIN is verified by the Worker (constant-time, brute-force
+   *  locked); only the random token is kept, in sessionStorage. */
+  store.adminLogin = async function (pin) {
+    const d = await api('/api/admin/login', {
+      method: 'POST', public: true, body: JSON.stringify({ pin: String(pin || '') }),
+    });
+    SERVER.token = String(d.token || '');
+    SERVER.expiresAt = Date.now() + (parseInt(d.expires_in, 10) || 0) * 1000;
+    SERVER.loginAt = Date.now();
+    try {
+      sessionStorage.setItem('akirma_admin_token', SERVER.token);
+      sessionStorage.setItem('akirma_admin_exp', String(SERVER.expiresAt));
+    } catch (e) { /* ignore */ }
+    return true;
+  };
+
+  /** Invalidate the session server-side and forget it locally. */
+  store.adminLogout = async function () {
+    try { await api('/api/admin/logout', { method: 'POST', public: true }); } catch (e) { /* best effort */ }
+    clearSession(false);
+  };
+
+  /** True when a non-expired session token exists (used at boot). */
+  store.adminSessionActive = function () {
+    return !!(SERVER.token && (!SERVER.expiresAt || SERVER.expiresAt > Date.now()));
   };
 
   /** Fire-and-forget save of a contact-form inquiry. */
@@ -191,7 +248,7 @@
 
   store.signOut = async function () {
     if (ready && auth) await auth.signOut();
-    sessionStorage.removeItem('akirma_admin_ok');
+    clearSession(false);
   };
 
   store.onAuth = function (cb) {

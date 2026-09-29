@@ -4,29 +4,88 @@
  * ═══════════════════════════════════════════════════════════════
  *  Serves the static site (assets) plus a small booking-inquiry API:
  *
- *    POST   /api/inquiry     visitors submit the contact/booking form
- *    GET    /api/health      uptime check
- *    GET    /api/inquiries   admin: list inquiries   (X-Admin-PIN header)
- *    PATCH  /api/inquiry     admin: update status    (X-Admin-PIN header)
- *    DELETE /api/inquiry     admin: delete one       (X-Admin-PIN header)
+ *    POST   /api/inquiry        visitors submit the contact/booking form
+ *    GET    /api/health         uptime check
+ *    POST   /api/admin/login    admin: exchange PIN for a session token
+ *    POST   /api/admin/logout   admin: invalidate the current session
+ *    GET    /api/inquiries      admin: list inquiries   (Bearer token)
+ *    PATCH  /api/inquiry        admin: update status    (Bearer token)
+ *    DELETE /api/inquiry        admin: delete one       (Bearer token)
  *
  *  Inquiries are stored in Cloudflare KV (binding INQUIRIES) and appear
- *  in the admin dashboard at /admin.html (PIN-protected server-side).
+ *  in the admin dashboard at /admin.html.
  *
- *  NOTE: the admin PIN defaults to js/config.js ADMIN.DEMO_PIN ('2519').
- *  To harden, deploy a secret:  npx wrangler secret put ADMIN_PIN
- *  (the dashboard PIN in config.js must be changed to match).
+ *  SECURITY MODEL (no secrets in the client bundle):
+ *  - The PIN lives ONLY in the worker secret ADMIN_PIN
+ *      npx wrangler secret put ADMIN_PIN
+ *  - POST /api/admin/login validates it server-side (constant-time
+ *    compare) with per-IP brute-force lockout (5 fails → 15 min).
+ *  - Success returns a random session token stored in KV with an 8h
+ *    TTL (sliding). Admin endpoints require `Authorization: Bearer`.
  * ═══════════════════════════════════════════════════════════════
  */
 'use strict';
 
-const PIN_FALLBACK = '2519';
-const PREFIX = 'inq:'; // keys look like: inq:<reverse-timestamp>:<id>  → newest first
+const PREFIX = 'inq:';      // keys look like: inq:<reverse-timestamp>:<id> → newest first
+const SESS_PREFIX = 'sess:'; // admin sessions: sess:<token>
+const SESSION_TTL = 8 * 3600;      // 8 hours (seconds)
+const LOGIN_MAX_FAILS = 5;         // failed PIN attempts before lockout
+const LOGIN_LOCKOUT = 15 * 60;     // lockout duration (seconds)
 
-function json(data, status = 200) {
+/**
+ * Login brute-force guard — one Durable Object instance per client IP.
+ * A DO is required because neither KV (reads may lag ~60s) nor the Cache
+ * API (cross-request same-key reads are unreliable) can count rapid-fire
+ * failed attempts accurately. DO storage is strongly consistent.
+ */
+export class LoginGuard {
+  constructor(state, env) { this.state = state; this.sql = state.storage.sql; }
+
+  getUntil() {
+    const rows = [...this.sql.exec('SELECT v FROM meta WHERE k = ?', 'until')];
+    return rows.length ? Number(rows[0].v) : 0;
+  }
+
+  async fetch(request) {
+    this.sql.exec('CREATE TABLE IF NOT EXISTS fails (ts INTEGER NOT NULL)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL)');
+    const now = Date.now();
+    const cmd = new URL(request.url).pathname;
+
+    if (cmd === '/check') {
+      const until = this.getUntil();
+      return Response.json({ locked_for: until > now ? Math.ceil((until - now) / 1000) : 0 });
+    }
+
+    if (cmd === '/fail') {
+      this.sql.exec('INSERT INTO fails VALUES (?)', now);
+      this.sql.exec('DELETE FROM fails WHERE ts < ?', now - LOGIN_LOCKOUT * 1000);
+      const n = Number([...this.sql.exec('SELECT COUNT(*) AS c FROM fails')][0].c);
+      if (n >= LOGIN_MAX_FAILS) {
+        const until = now + LOGIN_LOCKOUT * 1000;
+        this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'until', until);
+        return Response.json({ fails: n, locked_for: LOGIN_LOCKOUT });
+      }
+      return Response.json({ fails: n, locked_for: 0 });
+    }
+
+    if (cmd === '/reset') {
+      this.sql.exec('DELETE FROM fails');
+      this.sql.exec('DELETE FROM meta');
+      return Response.json({ ok: true });
+    }
+
+    return new Response('not found', { status: 404 });
+  }
+}
+
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: Object.assign({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    }, extraHeaders),
   });
 }
 
@@ -39,9 +98,67 @@ async function readJson(request, maxBytes = 16 * 1024) {
 
 function cap(s, n) { return typeof s === 'string' ? s.trim().slice(0, n) : ''; }
 
-function checkPin(request, env) {
-  const pin = request.headers.get('X-Admin-PIN') || '';
-  return pin !== '' && pin === (env.ADMIN_PIN || PIN_FALLBACK);
+/** Constant-time string compare so response timing can't leak the PIN. */
+function timingSafeEq(a, b) {
+  a = String(a); b = String(b);
+  let diff = a.length ^ b.length;
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+/**
+ * Brute-force guard helpers — delegate to a per-IP Durable Object
+ * (strongly consistent; see LoginGuard class above).
+ */
+function guardStub(env, ip) {
+  return env.LOGIN_GUARD.get(env.LOGIN_GUARD.idFromName(ip));
+}
+
+async function loginLocked(env, ip) {
+  try {
+    const r = await guardStub(env, ip).fetch('https://guard/check');
+    const d = await r.json();
+    return d.locked_for > 0 ? d.locked_for : null;
+  } catch (e) { return null; } // guard unavailable — fail open
+}
+
+async function loginFail(env, ip) {
+  try { await guardStub(env, ip).fetch('https://guard/fail'); } catch (e) { /* ignore */ }
+}
+
+async function loginReset(env, ip) {
+  try { await guardStub(env, ip).fetch('https://guard/reset'); } catch (e) { /* ignore */ }
+}
+
+/**
+ * Validate the `Authorization: Bearer <token>` header against KV sessions.
+ * Sliding expiry: re-armed at most once per hour (avoids a KV write on
+ * every admin request).
+ */
+async function checkAuth(request, env) {
+  const h = request.headers.get('Authorization') || '';
+  const m = /^Bearer\s+(\S+)$/i.exec(h);
+  if (!m || !env.INQUIRIES) return false;
+  const key = SESS_PREFIX + m[1];
+  const raw = await env.INQUIRIES.get(key);
+  if (!raw) return false;
+  let rec = null;
+  try { rec = JSON.parse(raw); } catch (e) { return false; }
+  const age = Date.now() - (rec.createdAt || 0);
+  if (age > 3600 * 1000) {
+    rec.createdAt = Date.now();
+    await env.INQUIRIES.put(key, JSON.stringify(rec), { expirationTtl: SESSION_TTL }); // slide
+  }
+  return true;
+}
+
+function bearerToken(request) {
+  const h = request.headers.get('Authorization') || '';
+  const m = /^Bearer\s+(\S+)$/i.exec(h);
+  return m ? m[1] : '';
 }
 
 /** Best-effort per-IP damping: max 12 submissions per hour. */
@@ -147,8 +264,38 @@ export default {
         return json({ ok: true, id: rec.id });
       }
 
-      // ── admin endpoints (PIN protected) ─────────────────
-      const admin = checkPin(request, env);
+      // ── admin auth (server-side PIN → session token) ────
+      if (request.method === 'POST' && path === '/api/admin/login') {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const lockSecs = await loginLocked(env, ip);
+        if (lockSecs) return json({ ok: false, error: 'rate_limited', retry_after: lockSecs }, 429,
+          { 'Retry-After': String(lockSecs) });
+
+        if (!env.ADMIN_PIN) return json({ ok: false, error: 'pin_not_configured' }, 503);
+
+        const body = await readJson(request, 1024);
+        if (!body || typeof body.pin !== 'string') return json({ ok: false, error: 'bad_request' }, 400);
+
+        if (!timingSafeEq(body.pin, env.ADMIN_PIN)) {
+          await loginFail(env, ip);
+          return json({ ok: false, error: 'invalid_pin' }, 401);
+        }
+
+        await loginReset(env, ip);
+        const token = crypto.randomUUID();
+        const rec = JSON.stringify({ ip, createdAt: Date.now(), ua: cap(request.headers.get('User-Agent'), 120) });
+        await env.INQUIRIES.put(SESS_PREFIX + token, rec, { expirationTtl: SESSION_TTL });
+        return json({ ok: true, token, expires_in: SESSION_TTL });
+      }
+
+      if (request.method === 'POST' && path === '/api/admin/logout') {
+        const token = bearerToken(request);
+        if (token && env.INQUIRIES) await env.INQUIRIES.delete(SESS_PREFIX + token);
+        return json({ ok: true });
+      }
+
+      // ── admin endpoints (Bearer session token) ──────────
+      const admin = await checkAuth(request, env);
 
       if (request.method === 'GET' && path === '/api/inquiries') {
         if (!admin) return json({ ok: false, error: 'unauthorized' }, 401);

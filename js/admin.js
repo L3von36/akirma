@@ -2,9 +2,11 @@
  * AKIRMA EVENTS - js/admin.js
  * Admin dashboard logic. Requires config.js + store.js.
  *
- * Two modes (auto-detected from js/config.js):
+ * Three modes (auto-detected from js/config.js):
  *  - firebase : sign-in with Firebase Auth email/password, data from Firestore
- *  - demo     : PIN gate (ADMIN.DEMO_PIN), sample data in localStorage
+ *  - server   : PIN verified server-side (POST /api/admin/login → Bearer
+ *               session token), live data from the Worker KV
+ *  - demo     : sample data in localStorage (only when no site API exists)
  *
  * All admin UI text is English-only (back-office tool).
  */
@@ -71,7 +73,7 @@
     $('login-form-demo').style.display = fbReady ? 'none' : 'flex';
     $('login-sub').textContent = fbReady
       ? 'Sign in with your admin account to manage inquiries & subscribers.'
-      : (S.mode === 'server' ? 'Enter your PIN to manage real booking inquiries from the website.' : 'Preview the dashboard with sample data.');
+      : (S.mode === 'server' ? 'Enter your admin PIN to manage real booking inquiries from the website.' : 'Preview the dashboard with sample data.');
   }
   function showApp() {
     $('admin-login').style.display = 'none';
@@ -83,9 +85,10 @@
   }
 
   async function boot() {
-    // Restore demo session
     if (!fbReady) {
-      if (sessionStorage.getItem('akirma_admin_ok') === '1') showApp();
+      // Server mode: a live session token (if any) was restored from
+      // sessionStorage by store.js — verify it is still fresh.
+      if (S.mode === 'server' ? S.adminSessionActive() : sessionStorage.getItem('akirma_admin_ok') === '1') showApp();
       else showLogin();
       return;
     }
@@ -118,23 +121,50 @@
     }
   });
 
-  $('login-form-demo').addEventListener('submit', (e) => {
+  $('login-form-demo').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('login-error').style.display = 'none';
     const pin = ($('admin-pin').value || '').trim();
-    if (pin === String(cfg.ADMIN && cfg.ADMIN.DEMO_PIN || '2519')) {
-      if (S.setAdminPin) S.setAdminPin(pin); // site-API mode: PIN also authenticates server calls
-      sessionStorage.setItem('akirma_admin_ok', '1');
+    const btn = $('demo-login-btn');
+    btn.disabled = true; btn.textContent = 'Verifying…';
+    try {
+      if (S.mode === 'server') {
+        await S.adminLogin(pin); // server-side PIN check → session token
+        sessionStorage.setItem('akirma_admin_ok', '1');
+      } else {
+        // Pure preview mode (no site API): sample data only, nothing sensitive.
+        sessionStorage.setItem('akirma_admin_ok', '1');
+      }
       showApp();
-    } else {
-      loginError('Incorrect PIN. The default demo PIN is in js/config.js (ADMIN.DEMO_PIN).');
+    } catch (err) {
+      const d = (err && err.data) || {};
+      if (d.error === 'rate_limited') {
+        const mins = Math.max(1, Math.ceil((d.retry_after || 60) / 60));
+        loginError('Too many attempts. Try again in about ' + mins + ' minute' + (mins > 1 ? 's' : '') + '.');
+      } else if (d.error === 'pin_not_configured') {
+        loginError('Server is missing the ADMIN_PIN secret. Deploy it with: npx wrangler secret put ADMIN_PIN');
+      } else if (d.error === 'invalid_pin') {
+        loginError('Incorrect PIN.');
+      } else {
+        loginError('Sign-in failed: ' + ((err && err.message) || 'network error'));
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign In';
     }
   });
 
   $('btn-logout').addEventListener('click', async () => {
-    await S.signOut();
+    if (S.mode === 'server') await S.adminLogout();
+    else await S.signOut();
     sessionStorage.removeItem('akirma_admin_ok');
     showLogin();
+  });
+
+  // Session died mid-use (expired server-side) → back to login with notice.
+  window.addEventListener('akirma:admin-401', () => {
+    sessionStorage.removeItem('akirma_admin_ok');
+    showLogin();
+    loginError('Your session has expired. Please sign in again.');
   });
 
   /* ── DATA ── */
@@ -481,7 +511,7 @@ service cloud.firestore {
       <div class="panel">
         <div class="panel-head"><h3>Security Notes</h3></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>How access is protected</h4>
-          <p><strong>Live mode:</strong> sign-in is handled by Firebase Authentication; data access is locked by the Firestore rules above. <strong>Demo mode:</strong> the PIN (<code>ADMIN.DEMO_PIN</code> in <code>js/config.js</code>) only gates a local preview with sample data — change it to any 4+ digit value you like.</p></div></div>
+          <p><strong>Live mode (site API):</strong> your PIN is verified server-side by the Cloudflare Worker against the <code>ADMIN_PIN</code> secret — it never ships in any JavaScript bundle. Successful sign-in returns a random session token (8 h sliding expiry, stored only for the current tab) that authorizes admin API calls. Failed attempts are rate-limited (5 tries → 15 min lockout). To change the PIN run: <code>npx wrangler secret put ADMIN_PIN</code>.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>Privacy</h4>
           <p>Inquiries contain personal data (names, phones, emails). Access is limited to the admin account; export CSVs only when needed and delete stale records.</p></div></div>
         <div class="setup-step"><span class="step-num">•</span><div><h4>This page is hidden from search engines</h4>
