@@ -477,7 +477,7 @@
       var node = { '@type': 'BlogPosting', headline: headline, url: BASE_URL + '/blog.html#' + encodeURIComponent(slug), author: { '@type': 'Organization', name: 'Akirma Events PLC' } };
       var d = String(p.date || '').trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(d)) node.datePublished = d;
-      if (p.image) { try { node.image = encodeURI(BASE_URL + '/' + String(p.image)); } catch (e) {} }
+      if (p.image && !/^data:/i.test(String(p.image))) { try { node.image = encodeURI(BASE_URL + '/' + String(p.image)); } catch (e) {} }
       return node;
     }).filter(Boolean);
     return posts.length ? { '@context': 'https://schema.org', '@type': 'Blog', '@id': BASE_URL + '/blog.html#blog', name: 'News & Tips | Akirma Events PLC', url: BASE_URL + '/blog.html', publisher: { '@type': 'LocalBusiness', '@id': BASE_URL + '/#business', name: 'Akirma Events PLC' }, blogPost: posts } : null;
