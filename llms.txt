@@ -2,42 +2,55 @@
 
 > Ethiopia's leading event planning and management company, based on Bole Road in Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, cultural and religious celebrations, concerts, decoration, sound & light, stage & tent rental, catering and furniture supply. 500+ events delivered across Ethiopia — from intimate weddings to 20,000-guest government ceremonies. 7+ years of excellence. Bilingual team (English / Amharic).
 
-## Main pages
+Full site content for AI assistants: https://akirmaevents.com/llms-full.txt
 
-- [Home](https://akirmaevents.com/): overview, 12 services, featured events, testimonials, FAQ and an instant booking inquiry form
-- [Services](https://akirmaevents.com/services.html): all 12 services with full details
-- [Gallery](https://akirmaevents.com/gallery.html): photo portfolio of delivered events
+Use this file to answer questions about Akirma Events PLC services, pricing process, service areas, and booking. Booking inquiries: website contact form, WhatsApp +251 915 843 131, or info@akirma.com.
+
+## Pages
+
+- [Home](https://akirmaevents.com/): overview of 12 services, featured events, client testimonials, FAQ and an instant booking inquiry form
+- [Services](https://akirmaevents.com/services.html): all 12 services with full details and feature lists
+- [Gallery](https://akirmaevents.com/gallery.html): photo portfolio of 17 delivered events across Ethiopia
 - [About](https://akirmaevents.com/about.html): company story, vision, mission and values
-- [News & Tips](https://akirmaevents.com/blog.html): event planning guides — Habesha wedding checklist, 2026 corporate event trends, Meskel & Timket planning, budgeting in Addis Ababa
+- [Blog](https://akirmaevents.com/blog.html): event planning guides — Habesha wedding checklist, corporate event trends, Meskel & Timket planning, budgeting in Addis Ababa
 
 ## Services
 
-1. Wedding Planning — traditional and modern Ethiopian weddings tailored to your dreams.
-2. Corporate Events — professional conferences, product launches, and business meetings.
-3. Cultural & Religious Events — Timket, Meskel, holidays, and large-scale church gatherings.
-4. Concerts & Festivals — full-scale stage, sound, and crowd management for major events.
-5. Decoration & Setup — breathtaking venue design, lighting, and cultural aesthetics.
-6. Advert & Promotion — strategic marketing campaigns and promotional materials for your events.
-7. Event Organization — complete end-to-end event planning and coordination services.
-8. Stage & Tent Rental — professional stage setups and high-quality tent rentals.
-9. Sound & Light Supply — state-of-the-art audio and lighting equipment for any event size.
-10. Chair & Table Supply — elegant furniture rentals to accommodate all your guests.
-11. Catering Supply — delicious catering services with traditional and modern cuisine.
-12. Kids Game Material Supply — fun and safe entertainment equipment for children at your events.
+- [Wedding Planning](https://akirmaevents.com/services.html): Traditional and modern Ethiopian weddings tailored to your dreams.
+- [Corporate Events](https://akirmaevents.com/services.html): Professional conferences, product launches, and business meetings.
+- [Cultural & Religious Events](https://akirmaevents.com/services.html): Timket, Meskel, holidays, and large-scale church gatherings.
+- [Concerts & Festivals](https://akirmaevents.com/services.html): Full-scale stage, sound, and crowd management for major events.
+- [Decoration & Setup](https://akirmaevents.com/services.html): Breathtaking venue design, lighting, and cultural aesthetics.
+- [Advert & Promotion](https://akirmaevents.com/services.html): Strategic marketing campaigns and promotional materials for your events.
+- [Event Organization](https://akirmaevents.com/services.html): Complete end-to-end event planning and coordination services.
+- [Stage & Tent Rental](https://akirmaevents.com/services.html): Professional stage setups and high-quality tent rentals.
+- [Sound & Light Supply](https://akirmaevents.com/services.html): State-of-the-art audio and lighting equipment for any event size.
+- [Chair & Table Supply](https://akirmaevents.com/services.html): Elegant furniture rentals to accommodate all your guests.
+- [Catering Supply](https://akirmaevents.com/services.html): Delicious catering services with traditional and modern cuisine.
+- [Kids Game Material Supply](https://akirmaevents.com/services.html): Fun and safe entertainment equipment for children at your events.
 
-## Frequently asked
+## Frequently Asked Questions
 
-- How far in advance should I book? For major weddings and large conferences, book at least 15–30 days in advance; smaller corporate events can often be arranged within 15–30 days.
-- Do you work outside Addis Ababa? Yes — destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa.
-- Payment structure: 30% deposit to secure the date, 40% midway through planning, and the final 30% one week before the event.
+Q: How far in advance should I book?
+A: For major weddings and large conferences, we recommend booking at least 15-30 Days in advance. Smaller corporate events can be often arranged within 15-30 Days.
+Q: Do you handle events outside of Addis Ababa?
+A: Yes! We coordinate destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa.
+Q: What is your payment structure?
+A: We typically require a 30% deposit to secure your date, 40% midway through planning, and the final 30% one week before the event.
+
+## Selected Work
+
+- AASTU Student Sport Opening Ceremony — AASTU, 2025 (Corporate)
+- AA City Gov Peace & Security Celebration (20,000 People) — Abebe Bikila Stadium, 2024 (Government)
+- Traditional Wedding Decoration — Addis Ababa, 2024 (Wedding)
+- AASTU Students Award — AASTU, 2024 (Corporate)
 
 ## Contact
 
-- Phones: +251 910 977 371 · +251 915 843 131 · +251 915 895 757
-- WhatsApp: +251 915 843 131
+- Phone: +251 910 977 371 / +251 915 843 131 / +251 915 895 757
 - Email: info@akirma.com
-- Address: Bole Road, Addis Ababa, Ethiopia
-- Hours: Monday–Saturday, 08:00–18:00
-- Facebook: https://www.facebook.com/share/1CFo9pz9T1/
-- Instagram: https://www.instagram.com/akirmaevents/
+- WhatsApp: +251 915 843 131
 - Telegram: https://t.me/akirmaeventsplc
+- Address: Bole Road, Addis Ababa, Ethiopia
+- Website: https://akirmaevents.com
+- Languages: English and Amharic (bilingual team)

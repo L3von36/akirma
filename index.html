@@ -24,102 +24,247 @@
   <link rel="canonical" href="https://akirmaevents.com/" />
   <!-- Structured Data -->
   <script type="application/ld+json" id="ld-business" data-akirma="business">
-  {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "@id": "https://akirmaevents.com/#business",
-    "name": "Akirma Events PLC",
-    "slogan": "Ethiopia's Premier Event Company",
-    "description": "Akirma Events PLC is Ethiopia's leading event planning and management company, based on Bole Road in Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, decoration, sound & light, stage & tent rental, catering and more — 500+ events delivered across Ethiopia, up to 20,000 guests.",
-    "image": "https://akirmaevents.com/images/hero-bg.png",
-    "url": "https://akirmaevents.com/",
-    "telephone": [ "+251910977371", "+251915843131", "+251915895757" ],
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Bole Road",
-      "addressLocality": "Addis Ababa",
-      "addressCountry": "ET"
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://akirmaevents.com/#business",
+  "name": "Akirma Events PLC",
+  "alternateName": "አክርማ ኢቨንት",
+  "description": "Ethiopia's leading event planning and management company based on Bole Road, Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, cultural and religious celebrations, concerts, decoration, sound & light, stage & tent rental, catering and furniture supply.",
+  "url": "https://akirmaevents.com/",
+  "image": "https://akirmaevents.com/images/hero-bg.png",
+  "logo": "https://akirmaevents.com/icons/android-chrome-512x512.png",
+  "telephone": [
+    "+251910977371",
+    "+251915843131",
+    "+251915895757"
+  ],
+  "email": "info@akirma.com",
+  "priceRange": "$$",
+  "foundingDate": "2019",
+  "knowsLanguage": [
+    "en",
+    "am"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Bole Road",
+    "addressLocality": "Addis Ababa",
+    "addressCountry": "ET"
+  },
+  "areaServed": [
+    {
+      "@type": "City",
+      "name": "Addis Ababa"
     },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 8.9971,
-      "longitude": 38.7967
-    },
-    "openingHoursSpecification": {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday"
-      ],
-      "opens": "08:00",
-      "closes": "18:00"
-    },
-    "areaServed": "Addis Ababa & nationwide across Ethiopia",
-    "knowsAbout": [
-      "Wedding Planning",
-      "Corporate Events",
-      "Cultural & Religious Events",
-      "Concerts & Festivals",
-      "Decoration & Setup",
-      "Advert & Promotion",
-      "Event Organization",
-      "Stage & Tent Rental",
-      "Sound & Light Supply",
-      "Chair & Table Supply",
-      "Catering Supply",
-      "Kids Game Material Supply"
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "customer service",
-      "telephone": [ "+251910977371", "+251915843131", "+251915895757" ],
-      "availableLanguage": [ "English", "Amharic" ]
-    },
-    "sameAs": [
-      "https://www.facebook.com/share/1CFo9pz9T1/",
-      "https://www.instagram.com/akirmaevents/",
-      "https://t.me/akirmaeventsplc"
-    ]
-  }
-  </script>
-  <script type="application/ld+json" id="ld-website">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "@id": "https://akirmaevents.com/#website",
-    "url": "https://akirmaevents.com/",
-    "name": "Akirma Events PLC",
-    "inLanguage": [ "en", "am" ],
-    "publisher": { "@type": "LocalBusiness", "@id": "https://akirmaevents.com/#business", "name": "Akirma Events PLC" }
-  }
-  </script>
-  <script type="application/ld+json" id="ld-faq">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "@id": "https://akirmaevents.com/#faq",
-    "mainEntity": [
+    {
+      "@type": "Country",
+      "name": "Ethiopia"
+    }
+  ],
+  "sameAs": [
+    "https://www.facebook.com/share/1CFo9pz9T1/",
+    "https://www.instagram.com/akirmaevents/",
+    "https://t.me/akirmaeventsplc"
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Event Planning Services",
+    "itemListElement": [
       {
-        "@type": "Question",
-        "name": "How far in advance should I book?",
-        "acceptedAnswer": { "@type": "Answer", "text": "For major weddings and large conferences, we recommend booking at least 15-30 Days in advance. Smaller corporate events can be often arranged within 15-30 Days." }
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Wedding Planning",
+          "description": "Traditional and modern Ethiopian weddings tailored to your dreams.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
       },
       {
-        "@type": "Question",
-        "name": "Do you handle events outside of Addis Ababa?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Yes! We coordinate destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa." }
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Corporate Events",
+          "description": "Professional conferences, product launches, and business meetings.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
       },
       {
-        "@type": "Question",
-        "name": "What is your payment structure?",
-        "acceptedAnswer": { "@type": "Answer", "text": "We typically require a 30% deposit to secure your date, 40% midway through planning, and the final 30% one week before the event." }
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Cultural & Religious Events",
+          "description": "Timket, Meskel, holidays, and large-scale church gatherings.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Concerts & Festivals",
+          "description": "Full-scale stage, sound, and crowd management for major events.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Decoration & Setup",
+          "description": "Breathtaking venue design, lighting, and cultural aesthetics.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Advert & Promotion",
+          "description": "Strategic marketing campaigns and promotional materials for your events.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Event Organization",
+          "description": "Complete end-to-end event planning and coordination services.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Stage & Tent Rental",
+          "description": "Professional stage setups and high-quality tent rentals.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Sound & Light Supply",
+          "description": "State-of-the-art audio and lighting equipment for any event size.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Chair & Table Supply",
+          "description": "Elegant furniture rentals to accommodate all your guests.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Catering Supply",
+          "description": "Delicious catering services with traditional and modern cuisine.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Kids Game Material Supply",
+          "description": "Fun and safe entertainment equipment for children at your events.",
+          "areaServed": "Ethiopia",
+          "provider": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
       }
     ]
   }
+}
+  </script>
+  <script type="application/ld+json" id="ld-website">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Akirma Events PLC",
+  "url": "https://akirmaevents.com/",
+  "inLanguage": [
+    "en",
+    "am"
+  ],
+  "publisher": {
+    "@id": "https://akirmaevents.com/#business"
+  }
+}
+  </script>
+  <script type="application/ld+json" id="ld-faq">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How far in advance should I book?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "For major weddings and large conferences, we recommend booking at least 15-30 Days in advance. Smaller corporate events can be often arranged within 15-30 Days."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do you handle events outside of Addis Ababa?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes! We coordinate destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is your payment structure?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We typically require a 30% deposit to secure your date, 40% midway through planning, and the final 30% one week before the event."
+      }
+    }
+  ]
+}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -195,7 +340,33 @@
       <h2 class="section-title" id="services-title">Our Services</h2>
       <p class="section-desc" id="services-desc">We provide comprehensive event management services designed to make every occasion extraordinary.</p>
     </div>
-    <div class="services-grid" id="services-grid"></div>
+    <div class="services-grid" id="services-grid">
+
+        <div class="service-card">
+          <h3>Wedding Planning</h3>
+          <p>Traditional and modern Ethiopian weddings tailored to your dreams.</p>
+        </div>
+        <div class="service-card">
+          <h3>Corporate Events</h3>
+          <p>Professional conferences, product launches, and business meetings.</p>
+        </div>
+        <div class="service-card">
+          <h3>Cultural &amp; Religious Events</h3>
+          <p>Timket, Meskel, holidays, and large-scale church gatherings.</p>
+        </div>
+        <div class="service-card">
+          <h3>Concerts &amp; Festivals</h3>
+          <p>Full-scale stage, sound, and crowd management for major events.</p>
+        </div>
+        <div class="service-card">
+          <h3>Decoration &amp; Setup</h3>
+          <p>Breathtaking venue design, lighting, and cultural aesthetics.</p>
+        </div>
+        <div class="service-card">
+          <h3>Advert &amp; Promotion</h3>
+          <p>Strategic marketing campaigns and promotional materials for your events.</p>
+        </div>
+    </div>
     <div class="see-more-wrap">
       <a href="#contact" class="btn btn-outline btn-md" id="services-see-more">See All Services</a>
     </div>
@@ -256,7 +427,14 @@
         <h3 id="vm-goals-title">Core Goals</h3>
         <div class="goals-divider-line"></div>
       </div>
-      <div class="goals-grid" id="goals-grid"></div>
+      <div class="goals-grid" id="goals-grid">
+
+            <div class="goal-card"><h3>Client Satisfaction</h3><p>Strive to consistently meet and surpass client expectations by providing top-notch event management services.</p></div>
+            <div class="goal-card"><h3>Exceptional Experiences</h3><p>Create unique and innovative event concepts that captivate attendees and leave a lasting impression.</p></div>
+            <div class="goal-card"><h3>Professionalism &amp; Reliability</h3><p>Establish a reputation for delivering events with the utmost professionalism and reliability.</p></div>
+            <div class="goal-card"><h3>Growth &amp; Expansion</h3><p>Expand the client base by consistently delivering successful events.</p></div>
+            <div class="goal-card"><h3>Industry Leadership</h3><p>Become an industry leader in corporate event management, consistently setting trends and raising the standard of excellence.</p></div>
+    </div>
     </div>
 
     <!-- Strategic Objectives -->
@@ -268,7 +446,17 @@
           <p id="obj-subtitle">Our roadmap to becoming the undisputed market leader in Ethiopian event management.</p>
         </div>
         <div class="flex-1">
-          <div class="objectives-grid" id="objectives-grid"></div>
+          <div class="objectives-grid" id="objectives-grid">
+
+              <div class="objective-card"><p>Offer comprehensive event planning services tailored to the specific needs and requirements of corporate clients.</p></div>
+              <div class="objective-card"><p>Provide meticulous attention to detail in all aspects of event management, including venue selection, logistics, catering, audiovisuals, and entertainment.</p></div>
+              <div class="objective-card"><p>Collaborate closely with clients to understand their brand identity, values, and objectives, to ensure the event aligns perfectly with their vision.</p></div>
+              <div class="objective-card"><p>Implement effective marketing and promotion strategies to create buzz and attract the desired target audience.</p></div>
+              <div class="objective-card"><p>Utilize technology and event management tools to streamline processes, enhance efficiency, and deliver superior results.</p></div>
+              <div class="objective-card"><p>Foster strong relationships with vendors and suppliers to ensure access to high-quality and reliable services.</p></div>
+              <div class="objective-card"><p>Continuously stay updated with the latest trends and innovations in the events industry, incorporating them into event concepts and design.</p></div>
+              <div class="objective-card"><p>Monitor and evaluate the success of each event, gathering feedback from clients and attendees, and implementing improvements for future events.</p></div>
+    </div>
         </div>
 
       </div>
@@ -289,7 +477,53 @@
         <p class="section-desc" id="events-desc">Explore our portfolio of successfully delivered events across Ethiopia.</p>
       </div>
     </div>
-    <div class="events-grid" id="events-grid"></div>
+    <div class="events-grid" id="events-grid">
+
+        <div class="event-card">
+          <div class="event-card-img">
+            <img src="images/events/Aastu%20student%20sport%20opening%20ceremony.jpg" alt="AASTU Student Sport Opening Ceremony — AASTU, 2025" loading="lazy">
+          </div>
+          <div class="event-meta">
+            <span class="event-cat">Corporate</span>
+            <span class="event-year">2025</span>
+          </div>
+          <h3 class="event-title">AASTU Student Sport Opening Ceremony</h3>
+          <p class="event-loc">AASTU</p>
+        </div>
+        <div class="event-card">
+          <div class="event-card-img">
+            <img src="images/events/Addis%20ababa%20city%20government%20peace%20and%20security%2020,000%20celebrating%20ceremony%20to%20abebe%20bikila%20stadium.jpg" alt="AA City Gov Peace &amp; Security Celebration (20,000 People) — Abebe Bikila Stadium, 2024" loading="lazy">
+          </div>
+          <div class="event-meta">
+            <span class="event-cat">Government</span>
+            <span class="event-year">2024</span>
+          </div>
+          <h3 class="event-title">AA City Gov Peace &amp; Security Celebration (20,000 People)</h3>
+          <p class="event-loc">Abebe Bikila Stadium</p>
+        </div>
+        <div class="event-card">
+          <div class="event-card-img">
+            <img src="images/events/Traditional%20wedding%20decoration.jpg" alt="Traditional Wedding Decoration — Addis Ababa, 2024" loading="lazy">
+          </div>
+          <div class="event-meta">
+            <span class="event-cat">Wedding</span>
+            <span class="event-year">2024</span>
+          </div>
+          <h3 class="event-title">Traditional Wedding Decoration</h3>
+          <p class="event-loc">Addis Ababa</p>
+        </div>
+        <div class="event-card">
+          <div class="event-card-img">
+            <img src="images/events/Aastu%20students%20award.jpg" alt="AASTU Students Award — AASTU, 2024" loading="lazy">
+          </div>
+          <div class="event-meta">
+            <span class="event-cat">Corporate</span>
+            <span class="event-year">2024</span>
+          </div>
+          <h3 class="event-title">AASTU Students Award</h3>
+          <p class="event-loc">AASTU</p>
+        </div>
+    </div>
     <div class="see-more-wrap">
       <a href="#gallery" class="btn btn-outline-dark-text btn-md" id="events-see-more">View Portfolio</a>
     </div>
@@ -312,7 +546,24 @@
         </div>
         <h2 class="why-title" id="why-title">Why Choose Us?</h2>
         <p class="why-prose">Akirma (አክርማ ኢቨንት) is the leading <strong>event organizer in Ethiopia</strong>. We bring cultural excellence to every celebration, from traditional Habesha weddings to high-scale corporate events in Addis Ababa.</p>
-        <ul class="why-list" id="why-list"></ul>
+        <ul class="why-list" id="why-list">
+
+          <li class="why-list-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <span>Experienced local event professionals</span>
+          </li>
+          <li class="why-list-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <span>Reliable wide network of Ethiopian vendors</span>
+          </li>
+          <li class="why-list-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <span>On-time and on-budget delivery guarantee</span>
+          </li>
+          <li class="why-list-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <span>Deeply culturally aware planning and design</span>
+          </li>
+          <li class="why-list-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <span>End-to-end event management from A to Z</span>
+          </li>
+    </ul>
       </div>
       <!-- Right: Image (desktop only) -->
       <div class="why-img-col">
@@ -337,7 +588,30 @@
       <h2 class="section-title" id="testi-title">What Our Clients Say</h2>
       <p class="section-desc" id="testi-desc">Don't just take our word for it. Here is feedback from some of our happy clients.</p>
     </div>
-    <div class="testi-grid" id="testi-grid"></div>
+    <div class="testi-grid" id="testi-grid">
+
+        <figure class="testi-card">
+          <blockquote class="testi-text">Their logistical precision and focus on security made our city-wide events seamless. A truly professional team.</blockquote>
+          <figcaption class="testi-author">
+            <h4>Hon. Midekssa Kebede</h4>
+            <span>Deputy Head, AA Peace &amp; Security Bureau</span>
+          </figcaption>
+        </figure>
+        <figure class="testi-card">
+          <blockquote class="testi-text">The most reliable partner for sub-city development events. They deliver excellence every single time.</blockquote>
+          <figcaption class="testi-author">
+            <h4>Hon. Tsige Jima</h4>
+            <span>Deputy Manager, Lemi Kura Sub-city</span>
+          </figcaption>
+        </figure>
+        <figure class="testi-card">
+          <blockquote class="testi-text">Innovation and culture perfectly blended. They handled our university summit with world-class standards.</blockquote>
+          <figcaption class="testi-author">
+            <h4>Dr. Dereje</h4>
+            <span>Director, AA Science &amp; Technology University</span>
+          </figcaption>
+        </figure>
+    </div>
   </div>
 </section>
 
@@ -354,7 +628,21 @@
     </div>
     <div class="faq-wrap">
       <div class="faq-box">
-        <div id="faq-list"></div>
+        <div id="faq-list">
+
+          <div class="faq-item">
+            <h3 class="faq-question"><span>How far in advance should I book?</span></h3>
+            <div class="faq-answer"><div class="faq-answer-inner"><p>For major weddings and large conferences, we recommend booking at least 15-30 Days in advance. Smaller corporate events can be often arranged within 15-30 Days.</p></div></div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-question"><span>Do you handle events outside of Addis Ababa?</span></h3>
+            <div class="faq-answer"><div class="faq-answer-inner"><p>Yes! We coordinate destination weddings and corporate retreats across Ethiopia, including Lalibela, Bahir Dar, and Hawassa.</p></div></div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-question"><span>What is your payment structure?</span></h3>
+            <div class="faq-answer"><div class="faq-answer-inner"><p>We typically require a 30% deposit to secure your date, 40% midway through planning, and the final 30% one week before the event.</p></div></div>
+          </div>
+    </div>
       </div>
     </div>
   </div>

@@ -228,6 +228,78 @@
 
     #list-view.hidden { display: none; }
   </style>
+  <script type="application/ld+json" id="ld-blog-collection">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Akirma Events Blog — Event Planning Guides",
+  "url": "https://akirmaevents.com/blog.html",
+  "publisher": {
+    "@id": "https://akirmaevents.com/#business"
+  },
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@type": "BlogPosting",
+          "headline": "How to Plan a Traditional Habesha Wedding: A Complete Checklist",
+          "abstract": "From melse and telosh to décor, catering, and guest logistics — the complete timeline for a flawless Habesha wedding week.",
+          "datePublished": "2026-08-15",
+          "url": "https://akirmaevents.com/blog.html#habesha-wedding-checklist",
+          "author": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "item": {
+          "@type": "BlogPosting",
+          "headline": "7 Corporate Event Trends Shaping Ethiopia in 2026",
+          "abstract": "Hybrid formats, sustainable décor, LED-first stages, and data-driven ROI — what leading Ethiopian companies are doing differently this year.",
+          "datePublished": "2026-07-02",
+          "url": "https://akirmaevents.com/blog.html#corporate-event-trends-2026",
+          "author": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@type": "BlogPosting",
+          "headline": "Organizing Meskel & Timket: Large-Scale Cultural Celebrations Done Right",
+          "abstract": "Crowds of thousands, protocol, sound coverage, and safety — the playbook for managing Ethiopia’s biggest public celebrations.",
+          "datePublished": "2026-06-10",
+          "url": "https://akirmaevents.com/blog.html#meskel-timket-celebrations",
+          "author": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "item": {
+          "@type": "BlogPosting",
+          "headline": "How to Budget Your Event in Addis Ababa: A Practical 2026 Guide",
+          "abstract": "Where the money really goes, which line items surprise everyone, and how to compare quotes without cutting the wrong corners.",
+          "datePublished": "2026-05-18",
+          "url": "https://akirmaevents.com/blog.html#event-budget-guide-addis",
+          "author": {
+            "@id": "https://akirmaevents.com/#business"
+          }
+        }
+      }
+    ]
+  }
+}
+  </script>
 </head>
 <body>
 
@@ -258,7 +330,29 @@
         <button class="filter-btn" onclick="filterPosts('Culture')" id="filter-culture">Culture</button>
         <button class="filter-btn" onclick="filterPosts('Tips')" id="filter-tips">Tips</button>
       </div>
-      <div class="blog-grid" id="blog-grid"></div>
+      <div class="blog-grid" id="blog-grid">
+
+        <article class="blog-card">
+          <h3><a href="blog.html#habesha-wedding-checklist">How to Plan a Traditional Habesha Wedding: A Complete Checklist</a></h3>
+          <p>From melse and telosh to décor, catering, and guest logistics — the complete timeline for a flawless Habesha wedding week.</p>
+          <div class="blog-meta"><span>Wedding</span><time datetime="2026-08-15">2026-08-15</time></div>
+        </article>
+        <article class="blog-card">
+          <h3><a href="blog.html#corporate-event-trends-2026">7 Corporate Event Trends Shaping Ethiopia in 2026</a></h3>
+          <p>Hybrid formats, sustainable décor, LED-first stages, and data-driven ROI — what leading Ethiopian companies are doing differently this year.</p>
+          <div class="blog-meta"><span>Corporate</span><time datetime="2026-07-02">2026-07-02</time></div>
+        </article>
+        <article class="blog-card">
+          <h3><a href="blog.html#meskel-timket-celebrations">Organizing Meskel &amp; Timket: Large-Scale Cultural Celebrations Done Right</a></h3>
+          <p>Crowds of thousands, protocol, sound coverage, and safety — the playbook for managing Ethiopia’s biggest public celebrations.</p>
+          <div class="blog-meta"><span>Culture</span><time datetime="2026-06-10">2026-06-10</time></div>
+        </article>
+        <article class="blog-card">
+          <h3><a href="blog.html#event-budget-guide-addis">How to Budget Your Event in Addis Ababa: A Practical 2026 Guide</a></h3>
+          <p>Where the money really goes, which line items surprise everyone, and how to compare quotes without cutting the wrong corners.</p>
+          <div class="blog-meta"><span>Tips</span><time datetime="2026-05-18">2026-05-18</time></div>
+        </article>
+    </div>
     </div>
 
     <!-- Article view -->
