@@ -13,13 +13,13 @@
   <meta property="og:title" content="Akirma Events PLC | #1 Event Organizer in Ethiopia" />
   <meta property="og:description" content="Ethiopia's leading event organizer. Weddings, corporate conferences, government events, and cultural celebrations executed with excellence." />
   <meta property="og:url" content="https://akirmaevents.com/" />
-  <meta property="og:image" content="https://akirmaevents.com/images/hero-bg.png" />
+  <meta property="og:image" content="https://akirmaevents.com/images/hero-bg.jpg" />
   <meta property="og:locale" content="en_ET" />
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Akirma Events PLC | #1 Event Organizer in Ethiopia" />
   <meta name="twitter:description" content="Ethiopia's leading event organizer for weddings, corporate events, and cultural celebrations." />
-  <meta name="twitter:image" content="https://akirmaevents.com/images/hero-bg.png" />
+  <meta name="twitter:image" content="https://akirmaevents.com/images/hero-bg.jpg" />
   <!-- Canonical -->
   <link rel="canonical" href="https://akirmaevents.com/" />
   <!-- Structured Data -->
@@ -32,7 +32,7 @@
   "alternateName": "አክርማ ኢቨንት",
   "description": "Ethiopia's leading event planning and management company based on Bole Road, Addis Ababa. Full-service weddings, corporate conferences, government ceremonies, cultural and religious celebrations, concerts, decoration, sound & light, stage & tent rental, catering and furniture supply.",
   "url": "https://akirmaevents.com/",
-  "image": "https://akirmaevents.com/images/hero-bg.png",
+  "image": "https://akirmaevents.com/images/hero-bg.jpg",
   "logo": "https://akirmaevents.com/icons/android-chrome-512x512.png",
   "telephone": [
     "+251910977371",
@@ -273,16 +273,18 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#059669" />
+  <!-- Largest Contentful Paint element — fetch the hero image before CSS -->
+  <link rel="preload" as="image" href="images/hero-bg.webp" fetchpriority="high" />
+  <!-- Google Fonts as a parallel stylesheet (was a render-serial @import inside CSS) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap" />
 <link rel="stylesheet" href="css/styles.css" />
-  <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- EmailJS SDK (deferred — only needed when a form is submitted) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
   <!-- Site configuration (EmailJS keys, WhatsApp number, email) -->
-  <script src="js/config.js"></script>
+  <script src="js/config.js" defer></script>
   <!-- Admin dashboard data layer (safe no-op unless Firebase configured) -->
   <script src="js/store.js" defer></script>
   <!-- Preconnect fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <style>
     /* Spinner for loading btn */
     .spin { animation: spin 1s linear infinite; display:inline-block; }
@@ -304,7 +306,7 @@
 ══════════════════════════════════════════════════════ -->
 <section class="hero" id="main-content" style="padding-top:5rem;">
   <div class="hero-bg-img">
-    <img src="images/hero-bg.png" alt="Akirma Events: Leading event organizer in Ethiopia specializing in Habesha weddings and corporate conferences" />
+    <img src="images/hero-bg.webp" alt="Akirma Events: Leading event organizer in Ethiopia specializing in Habesha weddings and corporate conferences" fetchpriority="high" decoding="async" />
   </div>
   <div class="hero-bg-overlay"></div>
   <div class="container">
@@ -481,7 +483,7 @@
 
         <div class="event-card">
           <div class="event-card-img">
-            <img src="images/events/Aastu%20student%20sport%20opening%20ceremony.jpg" alt="AASTU Student Sport Opening Ceremony — AASTU, 2025" loading="lazy">
+            <img src="images/events/Aastu%20student%20sport%20opening%20ceremony.webp" alt="AASTU Student Sport Opening Ceremony — AASTU, 2025" loading="lazy">
           </div>
           <div class="event-meta">
             <span class="event-cat">Corporate</span>
@@ -492,7 +494,7 @@
         </div>
         <div class="event-card">
           <div class="event-card-img">
-            <img src="images/events/Addis%20ababa%20city%20government%20peace%20and%20security%2020,000%20celebrating%20ceremony%20to%20abebe%20bikila%20stadium.jpg" alt="AA City Gov Peace &amp; Security Celebration (20,000 People) — Abebe Bikila Stadium, 2024" loading="lazy">
+            <img src="images/events/Addis%20ababa%20city%20government%20peace%20and%20security%2020,000%20celebrating%20ceremony%20to%20abebe%20bikila%20stadium.webp" alt="AA City Gov Peace &amp; Security Celebration (20,000 People) — Abebe Bikila Stadium, 2024" loading="lazy">
           </div>
           <div class="event-meta">
             <span class="event-cat">Government</span>
@@ -503,7 +505,7 @@
         </div>
         <div class="event-card">
           <div class="event-card-img">
-            <img src="images/events/Traditional%20wedding%20decoration.jpg" alt="Traditional Wedding Decoration — Addis Ababa, 2024" loading="lazy">
+            <img src="images/events/Traditional%20wedding%20decoration.webp" alt="Traditional Wedding Decoration — Addis Ababa, 2024" loading="lazy">
           </div>
           <div class="event-meta">
             <span class="event-cat">Wedding</span>
@@ -514,7 +516,7 @@
         </div>
         <div class="event-card">
           <div class="event-card-img">
-            <img src="images/events/Aastu%20students%20award.jpg" alt="AASTU Students Award — AASTU, 2024" loading="lazy">
+            <img src="images/events/Aastu%20students%20award.webp" alt="AASTU Students Award — AASTU, 2024" loading="lazy">
           </div>
           <div class="event-meta">
             <span class="event-cat">Corporate</span>
@@ -568,7 +570,7 @@
       <!-- Right: Image (desktop only) -->
       <div class="why-img-col">
         <div class="why-img-box">
-          <img src="images/why-us.jpg" alt="Akirma Events professional planning team in Addis Ababa providing catering and decoration services" onerror="this.src='images/why-us.png'" />
+          <img src="images/why-us.webp" alt="Akirma Events professional planning team in Addis Ababa providing catering and decoration services" loading="lazy" decoding="async" />
           <div class="why-img-box-ring"></div>
         </div>
 
@@ -840,10 +842,10 @@
   </div>
 </div>
 
-<script src="js/data.js"></script>
-<script src="js/site-overrides.js"></script>
-<script src="js/content.js"></script>
-<script src="js/shared.js"></script>
+<script src="js/data.js" defer></script>
+<script src="js/site-overrides.js" defer></script>
+<script src="js/content.js" defer></script>
+<script src="js/shared.js" defer></script>
 <script src="js/app.js" defer></script>
 <!-- Interactive 3D hero (Three.js via CDN + progressive-enhancement init) -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" defer></script>

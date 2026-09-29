@@ -108,6 +108,20 @@
     clearSession(false);
   };
 
+  /** Ask the Worker to email a single-use PIN reset link to the owner
+   *  inbox (NOTIFY_EMAIL). Always resolves ok:true unless rate-limited. */
+  store.forgotPin = function () {
+    return api('/api/admin/forgot-pin', { method: 'POST', public: true, body: '{}' });
+  };
+
+  /** Exchange a reset token for a new PIN (single use, 15-minute window).
+   *  The Worker stores only a SHA-256 hash and invalidates all sessions. */
+  store.resetPin = function (token, pin) {
+    return api('/api/admin/reset-pin', {
+      method: 'POST', public: true, body: JSON.stringify({ token, pin }),
+    });
+  };
+
   /** True when a non-expired session token exists (used at boot). */
   store.adminSessionActive = function () {
     return !!(SERVER.token && (!SERVER.expiresAt || SERVER.expiresAt > Date.now()));

@@ -9,6 +9,8 @@
  *    GET    /api/health         uptime check
  *    POST   /api/admin/login    admin: exchange PIN for a session token
  *    POST   /api/admin/logout   admin: invalidate the current session
+ *    POST   /api/admin/forgot-pin  email a single-use reset link to the owner
+ *    POST   /api/admin/reset-pin   exchange reset token for a new PIN
  *    GET    /api/inquiries      admin: list inquiries     (Bearer token)
  *    PATCH  /api/inquiry        admin: update status      (Bearer token)
  *    DELETE /api/inquiry        admin: delete one         (Bearer token)
@@ -52,6 +54,11 @@ const LOGIN_MAX_FAILS = 5;         // failed PIN attempts before lockout
 const LOGIN_LOCKOUT = 15 * 60;     // lockout duration (seconds)
 const ALERT_FROM_FALLBACK = 'notifications@akirmaevents.com';
 
+const RESET_PREFIX = 'pwreset:';   // PIN reset tokens: pwreset:<token> → {ip, ts}
+const RESET_TTL = 15 * 60;         // reset link validity (seconds)
+const PIN_HASH_KEY = 'admin:pin';  // KV-stored SHA-256 hex of a self-service-reset PIN
+const FORGOT_COOLDOWN = 5 * 60;    // min seconds between forgot-pin emails per IP
+
 /**
  * Login brute-force guard — one Durable Object instance per client IP.
  * A DO is required because neither KV (reads may lag ~60s) nor the Cache
@@ -87,6 +94,19 @@ export class LoginGuard {
         return Response.json({ fails: n, locked_for: LOGIN_LOCKOUT });
       }
       return Response.json({ fails: n, locked_for: 0 });
+    }
+
+    if (cmd === '/forgot') {
+      // Strongly-consistent per-IP cooldown for PIN reset emails.
+      // (KV is only eventually consistent and misses rapid bursts.)
+      const rows = [...this.sql.exec('SELECT v FROM meta WHERE k = ?', 'forgot_until')];
+      const until = rows.length ? Number(rows[0].v) : 0;
+      if (until > now) {
+        return Response.json({ cooldown: Math.ceil((until - now) / 1000) });
+      }
+      const set = now + FORGOT_COOLDOWN * 1000;
+      this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'forgot_until', set);
+      return Response.json({ cooldown: 0 });
     }
 
     if (cmd === '/reset') {
@@ -127,6 +147,12 @@ function timingSafeEq(a, b) {
     diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
   return diff === 0;
+}
+
+/** SHA-256 of a string as lowercase hex (stores the reset PIN, never plaintext). */
+async function sha256Hex(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -305,6 +331,42 @@ function buildTestAlertEmail(from, to) {
   };
 }
 
+function buildResetEmail(from, link, ip) {
+  const subject = 'Reset your admin PIN — Akirma Events';
+  const lines = [
+    'Hello,',
+    '',
+    'Someone (hopefully you) asked to reset the admin PIN for',
+    'https://akirmaevents.com/admin.html.',
+    '',
+    'Open this link to choose a new PIN (works once, expires in 15 minutes):',
+    '',
+    link,
+    '',
+    'Request details:',
+    '- Time: ' + new Date().toISOString(),
+    '- IP:   ' + ip,
+    '',
+    'If you did not request this, ignore this email — your current PIN',
+    'keeps working and nothing has changed.',
+    '',
+    '— Akirma Events website (automated message)',
+  ];
+  return {
+    subject,
+    raw: [
+      'From: Akirma Events Website <' + from + '>',
+      'Subject: ' + headerSafe(subject),
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      'X-Website-Auto-Alert: pin-reset',
+      '',
+      lines.join('\r\n'),
+    ].join('\r\n'),
+  };
+}
+
 function sanitizeInquiry(b) {
   // Accept both name styles: API style (name/email) and the contact-form's
   // EmailJS-style keys (from_name/from_email) — see js/app.js getContactParams().
@@ -449,12 +511,20 @@ export default {
         if (lockSecs) return json({ ok: false, error: 'rate_limited', retry_after: lockSecs }, 429,
           { 'Retry-After': String(lockSecs) });
 
-        if (!env.ADMIN_PIN) return json({ ok: false, error: 'pin_not_configured' }, 503);
+        // The PIN matches either the deployed ADMIN_PIN secret or a
+        // self-service reset stored as a SHA-256 hash in KV (admin:pin).
+        const kvHash = env.INQUIRIES ? await env.INQUIRIES.get(PIN_HASH_KEY) : null;
+        if (!env.ADMIN_PIN && !kvHash) {
+          return json({ ok: false, error: 'pin_not_configured' }, 503);
+        }
 
         const body = await readJson(request, 1024);
         if (!body || typeof body.pin !== 'string') return json({ ok: false, error: 'bad_request' }, 400);
 
-        if (!timingSafeEq(body.pin, env.ADMIN_PIN)) {
+        let pinOk = false;
+        if (env.ADMIN_PIN) pinOk = timingSafeEq(body.pin, env.ADMIN_PIN);
+        if (!pinOk && kvHash) pinOk = timingSafeEq(await sha256Hex(body.pin), kvHash);
+        if (!pinOk) {
           await loginFail(env, ip);
           return json({ ok: false, error: 'invalid_pin' }, 401);
         }
@@ -470,6 +540,51 @@ export default {
         const token = bearerToken(request);
         if (token && env.INQUIRIES) await env.INQUIRIES.delete(SESS_PREFIX + token);
         return json({ ok: true });
+      }
+
+      // ── self-service PIN reset (email link to the owner inbox) ────
+      if (request.method === 'POST' && path === '/api/admin/forgot-pin') {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        // Strongly-consistent per-IP cooldown (Durable Object) so this
+        // endpoint can't spam the owner inbox with reset emails.
+        let cooldown = 0;
+        try {
+          const g = await guardStub(env, ip).fetch('https://guard/forgot');
+          cooldown = ((await g.json()) || {}).cooldown || 0;
+        } catch (e) { /* guard unavailable — fail open */ }
+        if (cooldown) return json({ ok: false, error: 'rate_limited', retry_after: cooldown }, 429,
+          { 'Retry-After': String(Math.ceil(cooldown)) });
+        // Uniform success — never reveals whether email delivery is set up
+        if (ctx && typeof ctx.waitUntil === 'function' && env.SEND_EMAIL && env.NOTIFY_EMAIL && env.INQUIRIES) {
+          const token = [...crypto.getRandomValues(new Uint8Array(24))]
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+          await env.INQUIRIES.put(RESET_PREFIX + token, JSON.stringify({ ip, ts: Date.now() }),
+            { expirationTtl: RESET_TTL });
+          const link = new URL('/admin.html?reset=' + token, request.url).toString();
+          ctx.waitUntil(sendAlert(env, buildResetEmail(env.NOTIFY_FROM || ALERT_FROM_FALLBACK, link, ip)));
+        }
+        return json({ ok: true, detail: 'If email alerts are configured, a single-use reset link (valid 15 minutes) was sent to the owner inbox.' });
+      }
+
+      if (request.method === 'POST' && path === '/api/admin/reset-pin') {
+        const body = await readJson(request, 1024);
+        const token = body && typeof body.token === 'string' ? body.token.trim() : '';
+        const pin = body && typeof body.pin === 'string' ? body.pin.trim() : '';
+        if (!/^[0-9]{4,8}$/.test(pin)) {
+          return json({ ok: false, error: 'bad_pin', detail: 'PIN must be 4-8 digits.' }, 400);
+        }
+        if (!token || !env.INQUIRIES) return json({ ok: false, error: 'bad_request' }, 400);
+        const key = RESET_PREFIX + token;
+        const val = await env.INQUIRIES.get(key);
+        if (!val) {
+          return json({ ok: false, error: 'invalid_token', detail: 'This reset link is invalid, already used, or expired. Request a new one.' }, 400);
+        }
+        await env.INQUIRIES.put(PIN_HASH_KEY, await sha256Hex(pin)); // new credential (hashed)
+        await env.INQUIRIES.delete(key);                             // single use
+        // Kill every existing session so old sign-ins stop working
+        const sess = await env.INQUIRIES.list({ prefix: SESS_PREFIX });
+        await Promise.all(sess.keys.map(k => env.INQUIRIES.delete(k.name)));
+        return json({ ok: true, detail: 'PIN updated. Sign in with your new PIN.' });
       }
 
       // ── admin endpoints (Bearer session token) ──────────

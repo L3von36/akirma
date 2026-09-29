@@ -64,11 +64,17 @@
   };
 
   /* ── AUTH / BOOT ── */
+  let resetMode = false; // true when arriving from an emailed ?reset=<token> link
+
   function showLogin() {
     $('admin-login').style.display = 'flex';
     $('admin-app').style.display = 'none';
-    $('login-form').style.display = 'flex';
-    $('login-sub').textContent = 'Enter your admin PIN to manage real booking inquiries & subscribers from the website.';
+    $('login-form').style.display = resetMode ? 'none' : 'flex';
+    $('forgot-area').style.display = resetMode ? 'none' : '';
+    $('reset-form').style.display = resetMode ? 'flex' : 'none';
+    $('login-sub').textContent = resetMode
+      ? 'Choose a new admin PIN to finish the reset.'
+      : 'Enter your admin PIN to manage real booking inquiries & subscribers from the website.';
   }
   function showApp() {
     $('admin-login').style.display = 'none';
@@ -117,6 +123,88 @@
       btn.disabled = false; btn.textContent = 'Sign In';
     }
   });
+
+  /* ── FORGOT PIN / SELF-SERVICE RESET ── */
+  function loginInfo(msg) {
+    const el = $('login-info');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  $('forgot-btn').addEventListener('click', () => {
+    $('login-error').style.display = 'none';
+    $('login-info').style.display = 'none';
+    const f = $('forgot-form');
+    f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+  });
+
+  $('forgot-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('login-error').style.display = 'none';
+    $('login-info').style.display = 'none';
+    const btn = $('forgot-send');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const d = await S.forgotPin();
+      $('forgot-form').style.display = 'none';
+      loginInfo(d.detail || 'Check the owner email inbox for a reset link (valid 15 minutes).');
+    } catch (err) {
+      const d = (err && err.data) || {};
+      if (d.error === 'rate_limited') {
+        const mins = Math.max(1, Math.ceil((d.retry_after || 300) / 60));
+        loginError('A reset link was requested recently. Try again in about ' + mins + ' minute' + (mins > 1 ? 's' : '') + '.');
+      } else {
+        loginError('Could not send the reset email: ' + ((err && err.message) || 'network error'));
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = 'Email me a reset link';
+    }
+  });
+
+  $('reset-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('login-error').style.display = 'none';
+    $('login-info').style.display = 'none';
+    const pin = ($('new-pin').value || '').trim();
+    const pin2 = ($('new-pin2').value || '').trim();
+    if (!/^[0-9]{4,8}$/.test(pin)) { loginError('PIN must be 4-8 digits.'); return; }
+    if (pin !== pin2) { loginError('The two PINs do not match.'); return; }
+    const btn = $('reset-btn');
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      const d = await S.resetPin($('reset-form').dataset.token || '', pin);
+      const f = $('reset-form');
+      f.style.display = 'none';
+      f.dataset.token = '';
+      resetMode = false;
+      showLogin();
+      $('admin-login').style.display = 'flex';
+      $('login-form').style.display = 'flex';
+      loginInfo(d.detail || 'PIN updated — sign in with your new PIN.');
+    } catch (err) {
+      const d = (err && err.data) || {};
+      if (d.error === 'invalid_token') {
+        loginError('This reset link is invalid, already used, or expired. Request a new one.');
+      } else if (d.error === 'bad_pin') {
+        loginError('PIN must be 4-8 digits.');
+      } else {
+        loginError('Reset failed: ' + ((err && err.message) || 'network error'));
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = 'Set new PIN';
+    }
+  });
+
+  // Arriving from the emailed link: /admin.html?reset=<token> — swap the
+  // login card for the "new PIN" form. The token stays in memory only and
+  // is scrubbed from the URL immediately.
+  (function () {
+    const m = /[?&]reset=([0-9a-f]{16,})/i.exec(location.search);
+    if (!m) return;
+    resetMode = true;
+    $('reset-form').dataset.token = m[1];
+    try { history.replaceState(null, '', location.pathname); } catch (err) { /* ignore */ }
+  })();
 
   $('btn-logout').addEventListener('click', async () => {
     await S.adminLogout();
@@ -611,7 +699,7 @@
       <div class="cimg-row">
         <span class="cimg-thumb"><img src="${esc(v)}" alt="" ${v ? '' : 'style="display:none"'} onerror="this.style.display='none'"></span>
         <div class="cimg-fields">
-          <input class="form-input cin" data-bind="${path}" value="${esc(v)}" placeholder="images/events/photo.jpg  or  https://…" />
+          <input class="form-input cin" data-bind="${path}" value="${esc(v)}" placeholder="images/events/photo.webp  or  https://…" />
           <div class="cimg-actions">
             <label class="mini-btn">Upload photo<input type="file" accept="image/*" data-imgbind="${path}" hidden></label>
             <span class="cimg-note">${note}</span>
@@ -695,7 +783,7 @@
 
   function tabEvents() {
     const ids = Object.keys(state.content.events).sort((a, b) => Number(a) - Number(b));
-    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Swap each event's photo below — upload from your computer (instant preview) or paste a path like <code>images/events/my-photo.jpg</code> for publishing.</p>
+    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Swap each event's photo below — upload from your computer (instant preview) or paste a path like <code>images/events/my-photo.webp</code> for publishing.</p>
       <div class="content-cards">${ids.map(id => {
         const e = state.content.events[id];
         return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}`, `
@@ -1225,7 +1313,7 @@
       map[String(n)] = {
         slug: 'new-post-' + n, date: new Date().toISOString().slice(0, 10), read_min: 4,
         category: 'Tips', categoryAm: 'ምክር',
-        image: 'images/events/photo_2026-01-29_22-06-34.jpg',
+        image: 'images/events/photo_2026-01-29_22-06-34.webp',
         title: 'New blog post', titleAm: 'አዲስ ጽሑፍ',
         excerpt: 'A short summary shown on the blog card.', excerptAm: 'በብሎግ ካርዱ ላይ የሚታይ አጭር ማጠቃለያ።',
         content: ['Write the first paragraph here. Each new line becomes its own paragraph on the site.'],

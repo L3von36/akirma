@@ -276,7 +276,7 @@
         date: String(o.date || new Date().toISOString().slice(0, 10)),
         read_min: Number(o.read_min) || 4,
         category: String(o.category || 'Tips'), categoryAm: String(o.categoryAm || 'ምክር'),
-        image: String(o.image || 'images/events/photo_2026-01-29_22-06-34.jpg'),
+        image: String(o.image || 'images/events/photo_2026-01-29_22-06-34.webp'),
         title: String(o.title || 'Untitled post'), titleAm: String(o.titleAm || o.title || 'አርዕስት ሌለው ጽሑፍ'),
         excerpt: String(o.excerpt || ''), excerptAm: String(o.excerptAm || ''),
         seo_title: String(o.seo_title || ''), seo_description: String(o.seo_description || ''),
@@ -411,7 +411,7 @@
       '@type': 'LocalBusiness',
       '@id': BASE_URL + '/#business',
       name: 'Akirma Events PLC',
-      image: BASE_URL + '/images/hero-bg.png',
+      image: BASE_URL + '/images/hero-bg.jpg',
       url: BASE_URL + '/',
       telephone: tels,
       address: {

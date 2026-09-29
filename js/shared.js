@@ -180,7 +180,7 @@ function renderSharedHeader() {
       <div class="header-inner">
         <!-- Logo -->
         <a href="${prefix}#" class="logo-link" aria-label="Akirma Events Home">
-          <div class="logo-img-wrap"><img src="logo.png" alt="Akirma Events Logo" /></div>
+          <div class="logo-img-wrap"><img src="logo.webp" alt="Akirma Events Logo" /></div>
           <span class="logo-name">Akirma</span>
         </a>
 
@@ -253,7 +253,7 @@ function renderSharedFooter() {
         <!-- Brand -->
         <div>
           <a href="${prefix}#" class="footer-logo" aria-label="Akirma Events Home">
-            <img src="logo.png" alt="Akirma Events Logo" class="footer-logo-img" />
+            <img src="logo.webp" alt="Akirma Events Logo" class="footer-logo-img" />
             <span class="footer-logo-name">Akirma</span>
           </a>
           <p class="footer-desc">${tr.footer.description}</p>

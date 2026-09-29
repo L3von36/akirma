@@ -163,7 +163,7 @@ const ALL_EVENTS = [
   { id: 14, title: 'Screen Stage & Backdrop - AASTU University', titleAm: 'ስክሪን መድረክ እና ዳራ - አአሳይቶ ዩኒቨርሲቲ', category: 'Corporate', categoryAm: 'ኮርፖሬት', location: 'AASTU', locationAm: 'አአሳይቶ', year: '2024', image: 'images/events/Screen stage snd backdrop works to aastu university.jpg', featured: false },
   { id: 15, title: 'Sport Academy Meeting - Haile Grand Hotel', titleAm: 'የስፖርት አካዳሚ ስብሰባ - ሃይሌ ግራንድ ሆቴል', category: 'Corporate', categoryAm: 'ኮርፖሬት', location: 'Haile Grand Hotel', locationAm: 'ሃይሌ ግራንድ ሆቴል', year: '2024', image: 'images/events/Sport academy meeting ceremony to haile grand hotel.jpg', featured: false },
   { id: 16, title: 'Students Closing Ceremony', titleAm: 'የተማሪዎች መዝጊያ ሥነ-ስርዓት', category: 'Corporate', categoryAm: 'ኮርፖሬት', location: 'Addis Ababa', locationAm: 'አዲስ አበባ', year: '2024', image: 'images/events/Students closing ceremony.jpg', featured: false },
-  { id: 17, title: 'Luxury Event Display', titleAm: 'ልዩ የዝግጅት ማሳያ', category: 'Social', categoryAm: 'ማህበራዊ', location: 'Addis Ababa', locationAm: 'አዲስ አበባ', year: '2024', image: 'images/events/photo_2026-01-29_22-06-34.jpg', featured: false },
+  { id: 17, title: 'Luxury Event Display', titleAm: 'ልዩ የዝግጅት ማሳያ', category: 'Social', categoryAm: 'ማህበራዊ', location: 'Addis Ababa', locationAm: 'አዲስ አበባ', year: '2024', image: 'images/events/photo_2026-01-29_22-06-34.webp', featured: false },
 ];
 
 const TESTIMONIALS = [

@@ -774,3 +774,28 @@ body.admin-body:not(.dark) .st-pre { background: #10231d; color: #b9f0d8; }
   .st-row { grid-template-columns: auto 1fr 120px; }
   .st-row input[type="date"] { font-size: .72rem; }
 }
+
+/* ── Forgot PIN / self-service reset (login card) ── */
+.login-link {
+  background: none;
+  border: none;
+  color: #059669;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-link:hover { color: #047857; }
+#forgot-area { display: flex; justify-content: center; margin-top: 0.25rem; }
+.login-info {
+  color: #15803d;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+}

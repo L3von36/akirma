@@ -19,7 +19,7 @@
   <div class="admin-login" id="admin-login">
     <div class="login-card">
       <div class="login-logo">
-        <img src="logo.png" alt="Akirma Events logo" />
+        <img src="logo.webp" alt="Akirma Events logo" />
       </div>
       <h1 class="login-title">Akirma Admin</h1>
       <p class="login-sub" id="login-sub">Sign in to manage inquiries &amp; subscribers.</p>
@@ -34,7 +34,30 @@
         <p class="login-hint">Your PIN is verified on the server — it is never stored in this page's code. Sessions last 8 hours and sign out clears them.</p>
       </form>
 
+      <!-- Forgot PIN: email a single-use reset link to the owner inbox -->
+      <div id="forgot-area">
+        <button type="button" class="login-link" id="forgot-btn">Forgot PIN?</button>
+        <form id="forgot-form" class="login-form" style="display:none" autocomplete="off">
+          <p class="login-hint">We will email a single-use reset link (valid 15 minutes) to the site owner inbox: <strong>info@akirmaevents.com</strong>.</p>
+          <button type="submit" class="btn btn-primary btn-lg login-btn" id="forgot-send">Email me a reset link</button>
+        </form>
+      </div>
+
+      <!-- New PIN form — opened from the emailed reset link (?reset=<token>) -->
+      <form id="reset-form" class="login-form" style="display:none" autocomplete="off">
+        <div class="form-field">
+          <label for="new-pin">New PIN (4-8 digits)</label>
+          <input class="form-input" type="password" id="new-pin" inputmode="numeric" maxlength="8" required />
+        </div>
+        <div class="form-field">
+          <label for="new-pin2">Repeat new PIN</label>
+          <input class="form-input" type="password" id="new-pin2" inputmode="numeric" maxlength="8" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg login-btn" id="reset-btn">Set new PIN</button>
+      </form>
+
       <p class="login-error" id="login-error" style="display:none"></p>
+      <p class="login-info" id="login-info" style="display:none"></p>
       <a class="login-back" href="index.html">&larr; Back to website</a>
     </div>
   </div>
@@ -44,7 +67,7 @@
     <!-- Sidebar -->
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="sb-brand">
-        <img src="logo.png" alt="" />
+        <img src="logo.webp" alt="" />
         <div>
           <strong>Akirma</strong>
           <span>Admin Panel</span>
