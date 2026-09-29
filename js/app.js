@@ -95,8 +95,13 @@ function renderFeaturedEvents() {
   document.getElementById('events-title').textContent = tr.events.title;
   document.getElementById('events-desc').textContent = tr.events.description;
 
-  document.getElementById('events-grid').innerHTML = FEATURED_EVENTS.map((e, i) => `
-    <div class="event-card" onclick="openModal(${i})">
+  // Read from ALL_EVENTS (admin overrides merged) so add/delete/featured
+  // toggles in the dashboard apply here — FEATURED_EVENTS is only a default.
+  const feats = ALL_EVENTS.filter(e => e.featured);
+  document.getElementById('events-grid').innerHTML = feats.map((e) => {
+    const gi = ALL_EVENTS.indexOf(e); // gallery/modal index of this event
+    return `
+    <div class="event-card" onclick="openModal(${gi})">
       <div class="event-card-img">
         <img src="${encodeURI(e.image).replace(/#/g, '%23')}" alt="${e.title}" loading="lazy" onerror="this.style.display='none'">
         <div class="event-card-overlay"></div>
@@ -109,7 +114,7 @@ function renderFeaturedEvents() {
       <h3 class="event-title">${lang === 'am' ? e.titleAm : e.title}</h3>
       <p class="event-loc">${lang === 'am' ? e.locationAm : e.location}</p>
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 // ── WHY CHOOSE US ──────────────────────────────────────────

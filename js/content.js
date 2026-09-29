@@ -226,12 +226,46 @@
   }
 
   /* ── apply overrides onto the live site data ──────────── */
-  function mergeMapInto(map, list) {
+  /** Templates for brand-new items added in the admin (minimum safe fields
+   *  so every renderer on the site can draw them without special cases). */
+  var STAR_PATH = 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z';
+  var NEW_ITEM_TPL = {
+    events: function () {
+      return { title: 'New event', titleAm: 'አዲስ ዝግጅት', category: 'Corporate', categoryAm: 'ኮርፖሬት', location: 'Addis Ababa', locationAm: 'አዲስ አበባ', year: String(new Date().getFullYear()), image: 'images/events/photo_2026-01-29_22-06-34.webp', featured: false };
+    },
+    services: function () {
+      return { name: 'New service', nameAm: 'አዲስ አገልግሎት', desc: '', descAm: '', iconName: 'Star', iconPath: STAR_PATH, features: [], order: 999 };
+    },
+    testimonials: function () {
+      return { quote: '', quoteAm: '', author: 'New client', authorAm: '', role: '', roleAm: '', order: 999 };
+    },
+    faqs: function () {
+      return { q: 'New question', qAm: 'አዲስ ጥያቄ', a: '', aAm: '', order: 999 };
+    },
+  };
+
+  /** Merge an overrides map (keyed by id) into a live site ARRAY:
+   *  - {_deleted:true} removes the item from the array
+   *  - unknown ids are appended as new items (with template defaults)
+   *  - known ids are deep-merged in place
+   *  Mirrors the admin editor so full CRUD works for every list. */
+  function mergeMapInto(map, list, kind) {
     if (!isObj(map) || !Array.isArray(list)) return;
+    var tpl = (NEW_ITEM_TPL[kind] || function () { return {}; });
+    var nextId = list.reduce(function (m, p) { return Math.max(m, Number(p.id) || 0); }, 0) + 1;
     Object.keys(map).forEach(function (id) {
-      var item = null;
-      for (var i = 0; i < list.length; i++) { if (String(list[i].id) === String(id)) { item = list[i]; break; } }
-      if (item) deepMerge(item, map[id]);
+      var o = map[id];
+      if (!isObj(o)) return;
+      var idx = -1, i;
+      for (i = 0; i < list.length; i++) { if (String(list[i].id) === String(id)) { idx = i; break; } }
+      if (o._deleted) { if (idx >= 0) list.splice(idx, 1); return; }
+      if (idx >= 0) { deepMerge(list[idx], o); return; }
+      // brand-new item created in the admin
+      var item = tpl();
+      item.id = Number(id) || nextId++;
+      deepMerge(item, o);
+      delete item._deleted;
+      list.push(item);
     });
   }
 
@@ -530,11 +564,11 @@
       HERO_STATS.length = 0;
       ov.stats.values.forEach(function (v) { HERO_STATS.push(String(v)); });
     }
-    if (typeof SERVICES !== 'undefined')      mergeMapInto(ov.services, SERVICES);
-    if (typeof ALL_EVENTS !== 'undefined')    mergeMapInto(ov.events, ALL_EVENTS);
+    if (typeof SERVICES !== 'undefined')      mergeMapInto(ov.services, SERVICES, 'services');
+    if (typeof ALL_EVENTS !== 'undefined')    mergeMapInto(ov.events, ALL_EVENTS, 'events');
     if (typeof BLOG_POSTS !== 'undefined')    mergeBlogInto(ov.blog, BLOG_POSTS);
-    if (typeof TESTIMONIALS !== 'undefined')  mergeMapInto(ov.testimonials, TESTIMONIALS);
-    if (typeof FAQS !== 'undefined')          mergeMapInto(ov.faqs, FAQS);
+    if (typeof TESTIMONIALS !== 'undefined')  mergeMapInto(ov.testimonials, TESTIMONIALS, 'testimonials');
+    if (typeof FAQS !== 'undefined')          mergeMapInto(ov.faqs, FAQS, 'faqs');
     applyBlogSeo(); // after the blog merge above — posts may carry SEO fields
     applyAeo(aeoEff()); // rebuild the JSON-LD blocks from the merged data
 

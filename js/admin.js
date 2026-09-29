@@ -72,7 +72,7 @@
   /* Must match the data-v attribute on <html> in admin.html. When they
    * differ, the visitor is running a cached JS/HTML mix — we warn instead
    * of silently misbehaving (the 2026-09 stale-cache reset-button bug). */
-  const ADMIN_UI_VERSION = '20260929a';
+  const ADMIN_UI_VERSION = '20260930a';
 
   function hideLoginBanners() {
     $('login-error').style.display = 'none';
@@ -840,11 +840,13 @@
   const C = window.AkirmaContent;
 
   const C_TABS = [
-    ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services (12)'],
-    ['events', 'Events (17)'], ['blog', 'Blog'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
+    ['hero', 'Hero'], ['sections', 'Sections'], ['services', 'Services'],
+    ['events', 'Events'], ['blog', 'Blog'], ['testimonials', 'Testimonials'], ['faq', 'FAQ'],
     ['identity', 'Vision & Mission'], ['why', 'Why Choose Us'], ['contact', 'Contact Info'], ['seo', 'SEO'],
     ['aeo', 'AEO']
   ];
+  /** Tabs whose label carries a live item count (deleted items excluded). */
+  const COUNTED_TABS = { services: 'services', events: 'events', blog: 'blog', testimonials: 'testimonials', faq: 'faqs' };
 
   function getPath(obj, path) {
     return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
@@ -1001,34 +1003,81 @@
   }
 
   function tabServices() {
-    const ids = Object.keys(state.content.services).sort((a, b) => Number(a) - Number(b));
-    return `<p class="content-hint">Shown on the landing page (first 6) and the Services page (all 12). Feature lists appear on the Services page (English only) — one item per line.</p>
-      <div class="content-cards">${ids.map(id => {
-        const s = state.content.services[id];
-        return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(s.name)} <span class="svc-am">${esc(s.nameAm)}</span>`, `
-          ${cBiFlat('Name', 'services.' + id, 'name', 'nameAm')}
-          ${cBiFlat('Description', 'services.' + id, 'desc', 'descAm', { area: true, rows: 2 })}
-          ${cField('Features (one per line)', 'services.' + id + '.features', { area: true, rows: 5, features: true })}
-        `);
-      }).join('')}</div>`;
+    const defaultsSv = (C.defaults() || {}).services || {};
+    const ids = liveIds('services').sort((a, b) => Number(a) - Number(b));
+    const del = Object.keys(state.content.services || {}).filter(id => state.content.services[id] && state.content.services[id]._deleted);
+    const cards = ids.map(id => {
+      const s = state.content.services[id];
+      const isNew = !defaultsSv[id];
+      return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(s.name)} <span class="svc-am">${esc(s.nameAm)}</span>${isNew ? ' <em class="lang-chip en">new</em>' : ''}`, `
+        ${cBiFlat('Name', 'services.' + id, 'name', 'nameAm')}
+        ${cBiFlat('Description', 'services.' + id, 'desc', 'descAm', { area: true, rows: 2 })}
+        ${cField('Features (one per line)', 'services.' + id + '.features', { area: true, rows: 5, features: true })}
+        <div class="post-actions"><button class="mini-btn danger" data-del="services.${esc(id)}">Delete this service</button></div>
+      `, false, `data-item="services-${esc(id)}"`);
+    }).join('');
+    return `
+      <div class="blog-toolbar">
+        <p class="content-hint" style="margin:0">The landing page shows the first 6 services; the Services page lists them all with their feature lists. New services get a star icon automatically.</p>
+        <button class="mini-btn primary" id="sv-add">+ Add new service</button>
+      </div>
+      <div class="content-cards">${cards || '<p class="content-hint">No services here — add one above, or press &ldquo;Reset to defaults&rdquo; to restore the originals.</p>'}</div>
+      ${delNote('services', del)}`;
   }
 
   function tabEvents() {
-    const ids = Object.keys(state.content.events).sort((a, b) => Number(a) - Number(b));
-    return `<p class="content-hint">Events 1–4 appear on the landing page ("Featured Events"); all 17 appear in the Gallery. Swap each event's photo below — upload from your computer (instant preview) or paste a path like <code>images/events/my-photo.webp</code> for publishing.</p>
-      <div class="content-cards">${ids.map(id => {
-        const e = state.content.events[id];
-        return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}`, `
-          ${cImage('Photo', 'events.' + id + '.image')}
-          ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
-          ${cBiFlat('Category', 'events.' + id, 'category', 'categoryAm')}
-          ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
-          ${cField('Year', 'events.' + id + '.year')}
-        `);
-      }).join('')}</div>`;
+    const defaultsEv = (C.defaults() || {}).events || {};
+    const ids = liveIds('events').sort((a, b) => Number(a) - Number(b));
+    const del = Object.keys(state.content.events || {}).filter(id => state.content.events[id] && state.content.events[id]._deleted);
+    const cards = ids.map(id => {
+      const e = state.content.events[id];
+      const isNew = !defaultsEv[id];
+      return itemCard(`<span class="svc-i">${esc(id)}</span> ${esc(e.title)}${isNew ? ' <em class="lang-chip en">new</em>' : ''}${e.featured ? ' <em class="lang-chip am">featured</em>' : ''}`, `
+        ${cImage('Photo', 'events.' + id + '.image')}
+        ${cBiFlat('Title', 'events.' + id, 'title', 'titleAm')}
+        ${cBiFlat('Category (site filters: Wedding, Corporate, Government, Decoration)', 'events.' + id, 'category', 'categoryAm')}
+        ${cBiFlat('Location', 'events.' + id, 'location', 'locationAm')}
+        ${cField('Year', 'events.' + id + '.year')}
+        <label class="feat-check"><input type="checkbox" data-fet="events.${esc(id)}.featured" ${e.featured ? 'checked' : ''} /> Show in &ldquo;Featured Events&rdquo; on the landing page</label>
+        <div class="post-actions"><button class="mini-btn danger" data-del="events.${esc(id)}">Delete this event</button></div>
+      `, false, `data-item="events-${esc(id)}"`);
+    }).join('');
+    return `
+      <div class="blog-toolbar">
+        <p class="content-hint" style="margin:0">Every event appears in the Gallery; tick &ldquo;featured&rdquo; to also show it on the landing page. Categories outside the four built-in filters still show under &ldquo;All&rdquo;. New events start with a placeholder photo — upload one per card.</p>
+        <button class="mini-btn primary" id="ev-add">+ Add new event</button>
+      </div>
+      <div class="content-cards">${cards || '<p class="content-hint">No events here — add one above, or press &ldquo;Reset to defaults&rdquo; to restore the originals.</p>'}</div>
+      ${delNote('events', del)}`;
   }
 
   /* ── BLOG tab (edit / add / delete posts on the News & Tips page) ── */
+  /** Generic list CRUD helpers (events / services / testimonials / faqs —
+   *  blog predates them but follows the same _deleted convention). */
+  function liveIds(key) {
+    const map = state.content[key] || {};
+    return Object.keys(map).filter(id => map[id] && typeof map[id] === 'object' && !map[id]._deleted);
+  }
+  function nextFreeId(key) {
+    const map = state.content[key] || (state.content[key] = {});
+    let n = 1;
+    while (map[String(n)]) n++;
+    return String(n);
+  }
+  function itemLabel(it) { return (it && (it.title || it.name || it.author || it.q)) || ''; }
+  /** "Marked for deletion … Undo" note shared by the list tabs. */
+  function delNote(key, del) {
+    if (!del.length) return '';
+    const map = state.content[key] || {};
+    return `<p class="content-hint deleted-note">Marked for deletion (applies after Save): ${del.map(id => `<button class="mini-btn" data-undel="${esc(key)}.${esc(id)}">Undo &ldquo;${esc(String(itemLabel(map[id]) || id).slice(0, 28))}&rdquo;</button>`).join(' ')}</p>`;
+  }
+  const LIST_TPL = {
+    events: () => ({ title: 'New event', titleAm: 'አዲስ ዝግጅት', category: 'Corporate', categoryAm: 'ኮርፖሬት', location: 'Addis Ababa', locationAm: 'አዲስ አበባ', year: String(new Date().getFullYear()), image: 'images/events/photo_2026-01-29_22-06-34.webp', featured: false }),
+    services: () => ({ name: 'New service', nameAm: 'አዲስ አገልግሎት', desc: '', descAm: '', iconName: 'Star', iconPath: 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z', features: [], order: 999 }),
+    testimonials: () => ({ quote: '', quoteAm: '', author: 'New client', authorAm: '', role: '', roleAm: '', order: 999 }),
+    faqs: () => ({ q: 'New question', qAm: 'አዲስ ጥያቄ', a: '', aAm: '', order: 999 }),
+  };
+
   function blogIds() {
     const map = state.content.blog || {};
     return Object.keys(map)
@@ -1080,26 +1129,48 @@
   }
 
   function tabTestimonials() {
-    const ids = Object.keys(state.content.testimonials).sort((a, b) => Number(a) - Number(b));
-    return `<div class="content-cards">${ids.map(id => {
+    const defaultsTs = (C.defaults() || {}).testimonials || {};
+    const ids = liveIds('testimonials').sort((a, b) => Number(a) - Number(b));
+    const del = Object.keys(state.content.testimonials || {}).filter(id => state.content.testimonials[id] && state.content.testimonials[id]._deleted);
+    const cards = ids.map(id => {
       const it = state.content.testimonials[id];
-      return itemCard(`<span class="svc-i">★</span> ${esc(it.author)}`, `
+      const isNew = !defaultsTs[id];
+      return itemCard(`<span class="svc-i">★</span> ${esc(it.author)}${isNew ? ' <em class="lang-chip en">new</em>' : ''}`, `
         ${cBiFlat('Quote', 'testimonials.' + id, 'quote', 'quoteAm', { area: true, rows: 3 })}
         ${cBiFlat('Author name', 'testimonials.' + id, 'author', 'authorAm')}
         ${cBiFlat('Role / Title', 'testimonials.' + id, 'role', 'roleAm')}
-      `);
-    }).join('')}</div>`;
+        <div class="post-actions"><button class="mini-btn danger" data-del="testimonials.${esc(id)}">Delete this testimonial</button></div>
+      `, false, `data-item="testimonials-${esc(id)}"`);
+    }).join('');
+    return `
+      <div class="blog-toolbar">
+        <p class="content-hint" style="margin:0">Client quotes shown on the landing page, in the order listed here.</p>
+        <button class="mini-btn primary" id="ts-add">+ Add new testimonial</button>
+      </div>
+      <div class="content-cards">${cards || '<p class="content-hint">No testimonials here — add one above, or press &ldquo;Reset to defaults&rdquo; to restore the originals.</p>'}</div>
+      ${delNote('testimonials', del)}`;
   }
 
   function tabFaq() {
-    const ids = Object.keys(state.content.faqs).sort((a, b) => Number(a) - Number(b));
-    return `<div class="content-cards">${ids.map(id => {
+    const defaultsFq = (C.defaults() || {}).faqs || {};
+    const ids = liveIds('faqs').sort((a, b) => Number(a) - Number(b));
+    const del = Object.keys(state.content.faqs || {}).filter(id => state.content.faqs[id] && state.content.faqs[id]._deleted);
+    const cards = ids.map(id => {
       const f = state.content.faqs[id];
-      return itemCard(`<span class="svc-i">Q${esc(id)}</span> ${esc(f.q)}`, `
+      const isNew = !defaultsFq[id];
+      return itemCard(`<span class="svc-i">Q${esc(id)}</span> ${esc(f.q)}${isNew ? ' <em class="lang-chip en">new</em>' : ''}`, `
         ${cBiFlat('Question', 'faqs.' + id, 'q', 'qAm')}
         ${cBiFlat('Answer', 'faqs.' + id, 'a', 'aAm', { area: true, rows: 3 })}
-      `);
-    }).join('')}</div>`;
+        <div class="post-actions"><button class="mini-btn danger" data-del="faqs.${esc(id)}">Delete this FAQ</button></div>
+      `, false, `data-item="faqs-${esc(id)}"`);
+    }).join('');
+    return `
+      <div class="blog-toolbar">
+        <p class="content-hint" style="margin:0">Questions shown in the FAQ section of the landing page and in Google's structured data.</p>
+        <button class="mini-btn primary" id="fq-add">+ Add new FAQ</button>
+      </div>
+      <div class="content-cards">${cards || '<p class="content-hint">No FAQs here — add one above, or press &ldquo;Reset to defaults&rdquo; to restore the originals.</p>'}</div>
+      ${delNote('faqs', del)}`;
   }
 
   function tabIdentity() {
@@ -1413,7 +1484,7 @@
 
       <div class="subtabs" id="c-subtabs">
         ${C_TABS.map(([id, label]) => {
-          const lbl = id === 'blog' ? label + ' (' + blogLiveCount() + ')' : label;
+          const lbl = COUNTED_TABS[id] ? label + ' (' + liveIds(COUNTED_TABS[id]).length + ')' : label;
           return `<button class="subtab ${state.contentTab === id ? 'active' : ''}" data-tab="${id}">${esc(lbl)}</button>`;
         }).join('')}
       </div>
@@ -1571,6 +1642,42 @@
       if (!dflt) delete state.content.blog[id];
       else delete state.content.blog[id]._deleted;
       render();
+    }));
+
+    // events / services / testimonials / faqs: add a new item
+    [['ev-add', 'events'], ['sv-add', 'services'], ['ts-add', 'testimonials'], ['fq-add', 'faqs']].forEach(([btnId, key]) => {
+      const btn = $(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const map = state.content[key] || (state.content[key] = {});
+        const id = nextFreeId(key);
+        map[id] = LIST_TPL[key] ? LIST_TPL[key]() : {};
+        state.contentTab = key === 'faqs' ? 'faq' : key;
+        render();
+        const el = c.querySelector(`details[data-item="${key}-${id}"]`);
+        if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      });
+    });
+    // events / services / testimonials / faqs: delete + undo delete
+    c.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      const dot = b.dataset.del.indexOf('.');
+      const key = b.dataset.del.slice(0, dot), id = b.dataset.del.slice(dot + 1);
+      const item = state.content[key][id];
+      if (!confirm('Delete "' + (itemLabel(item) || id) + '"? It disappears from the site after Save & Preview ("Reset to defaults" brings it back).')) return;
+      setPath(state.content, key + '.' + id + '._deleted', true);
+      render();
+    }));
+    c.querySelectorAll('[data-undel]').forEach(b => b.addEventListener('click', () => {
+      const dot = b.dataset.undel.indexOf('.');
+      const key = b.dataset.undel.slice(0, dot), id = b.dataset.undel.slice(dot + 1);
+      const dflt = ((C.defaults() || {})[key] || {})[id];
+      if (!dflt) delete state.content[key][id];
+      else delete state.content[key][id]._deleted;
+      render();
+    }));
+    // events: "show in Featured Events" toggle on the landing page
+    c.querySelectorAll('[data-fet]').forEach(chk => chk.addEventListener('change', () => {
+      setPath(state.content, chk.dataset.fet, chk.checked);
     }));
 
     const status = $('c-status');

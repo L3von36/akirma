@@ -1258,3 +1258,8 @@ body.admin-body:not(.dark) .st-pre { background: #10231d; color: #b9f0d8; }
 }
 .login-link:hover { color: #047857; }
 #forgot-area { display: flex; justify-content: center; margin-top: 0.25rem; }
+
+/* Featured-on-landing checkbox (event cards) */
+.feat-check { display: flex; align-items: center; gap: .55rem; margin: .8rem 0 .2rem; font-size: .85rem; color: #475569; cursor: pointer; user-select: none; }
+.feat-check input { width: 1rem; height: 1rem; accent-color: #d97706; cursor: pointer; flex: none; }
+body.admin-body.dark .feat-check { color: #cbd5e1; }

@@ -446,14 +446,14 @@ function renderServicesPage() {
         <h3>${lang === 'am' ? s.nameAm : s.name}</h3>
         <div class="svc-icon-lg">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="${s.iconPath}" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="${s.iconPath || ''}" />
           </svg>
         </div>
       </div>
       <div class="svc-card-body">
         <p>${lang === 'am' ? s.descAm : s.desc}</p>
         <ul class="svc-features">
-          ${s.features.map(f => `<li>${CHECK}<span>${f}</span></li>`).join('')}
+          ${(s.features || []).map(f => `<li>${CHECK}<span>${f}</span></li>`).join('')}
         </ul>
       </div>
     </div>
